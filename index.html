@@ -39,7 +39,15 @@
     overflow:hidden;
   }
   .screen.hidden{opacity:0; pointer-events:none;}
-  #end-screen, #start-screen{overflow-y:auto; -webkit-overflow-scrolling:touch;}
+  #end-screen, #start-screen{
+    overflow-y:auto; -webkit-overflow-scrolling:touch;
+    /* 画面が低い端末でコンテンツが縦に収まりきらないとき、
+       中央寄せのままだと上側(タイトルなど)が見切れてスクロールでも届かなくなるための対策。
+       safeキーワード対応ブラウザでは、はみ出す場合は上端(start側)から詰めて表示される。 */
+    justify-content:safe center;
+    padding-top:max(24px, env(safe-area-inset-top));
+    padding-bottom:max(24px, env(safe-area-inset-bottom));
+  }
 
   /* ---------- START SCREEN ---------- */
   #start-screen{gap:28px; background:
@@ -98,6 +106,16 @@
     box-shadow:0 6px 0 #965c00;
   }
   .start-btn:active{transform:translateY(4px); box-shadow:0 2px 0 #965c00;}
+
+  /* 画面の高さが低い端末(iPhone 12 mini等)ではスタート画面の余白・ロゴを詰めて、
+     スクロールしなくてもタイトルからスタートボタンまで収まりやすくする */
+  @media (max-height:700px){
+    #start-screen{gap:16px; padding-top:16px; padding-bottom:16px;}
+    .logo-symbol{width:56px; height:56px; font-size:38px; border-radius:16px;}
+    h1{font-size:22px;}
+    .subtitle{margin-top:-8px;}
+    .howto{padding:12px 18px; gap:6px;}
+  }
 
   /* ---------- GAME SCREEN ---------- */
   #game-screen{padding:0;}
