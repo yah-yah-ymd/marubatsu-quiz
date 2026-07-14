@@ -1,0 +1,1535 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>フリック○×クイズ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;700&family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #ffffff;
+    --maru: #17a974;
+    --maru-dark: #128a5e;
+    --batsu: #e14a56;
+    --batsu-dark: #c8404f;
+    --cream: #f7f5ee;
+    --gold: #cc7a00;
+    --ink: #14152a;
+    --chip-bg: rgba(20,21,42,.82);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color: transparent;}
+  html,body{
+    margin:0; height:100%; overflow:hidden;
+    background:var(--bg);
+    font-family:'Zen Maru Gothic', -apple-system, 'Hiragino Sans', sans-serif;
+    color:var(--ink);
+    touch-action:none;
+    user-select:none;
+  }
+  .num{font-family:'Fredoka', 'Zen Maru Gothic', sans-serif;}
+
+  #app{position:relative; width:100vw; height:100vh; height:100dvh;}
+  .screen{
+    position:absolute; inset:0;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding:24px;
+    opacity:1; transition:opacity .35s ease;
+    background:var(--bg);
+    overflow:hidden;
+  }
+  .screen.hidden{opacity:0; pointer-events:none;}
+  #end-screen, #start-screen{overflow-y:auto; -webkit-overflow-scrolling:touch;}
+
+  /* ---------- START SCREEN ---------- */
+  #start-screen{gap:28px; background:
+    radial-gradient(circle at 25% 20%, rgba(61,220,151,.20), transparent 45%),
+    radial-gradient(circle at 78% 75%, rgba(255,107,122,.20), transparent 45%),
+    var(--bg);
+  }
+  .logo-wrap{display:flex; align-items:center; gap:10px;}
+  .logo-symbol{
+    font-family:'Fredoka'; font-weight:700; font-size:52px; line-height:1;
+    width:76px; height:76px; border-radius:22px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .logo-symbol.o{background:var(--maru); color:#fff; transform:rotate(-6deg);}
+  .logo-symbol.x{background:var(--batsu); color:#fff; transform:rotate(6deg);}
+  h1{font-size:26px; margin:0; text-align:center; letter-spacing:.02em;}
+  .subtitle{opacity:.7; font-size:13px; margin-top:-16px; text-align:center;}
+
+  .howto{
+    display:flex; flex-direction:column; gap:10px;
+    background:rgba(20,21,42,.045); border:1px solid rgba(20,21,42,.09);
+    border-radius:18px; padding:16px 20px; width:min(320px, 82vw);
+  }
+  .howto-row{display:flex; align-items:center; gap:12px; font-size:13.5px;}
+  .howto-badge{
+    font-family:'Fredoka'; font-weight:700; font-size:18px; flex-shrink:0;
+    width:34px; height:34px; border-radius:10px; display:flex; align-items:center; justify-content:center;
+  }
+  .howto-badge.left{background:var(--maru); color:#fff;}
+  .howto-badge.right{background:var(--batsu); color:#fff;}
+
+  .time-select{display:flex; gap:10px;}
+  .time-btn{
+    font-family:'Fredoka'; font-weight:700; font-size:15px;
+    padding:10px 22px; border-radius:14px; border:2px solid rgba(20,21,42,.18);
+    background:transparent; color:var(--ink); cursor:pointer;
+  }
+  .time-btn.active{background:var(--gold); color:#fff; border-color:var(--gold);}
+
+  .section-label{font-size:12px; font-weight:700; opacity:.5; margin-top:-8px;}
+  .genre-select{
+    display:flex; flex-wrap:wrap; gap:8px; justify-content:center;
+    width:min(320px, 84vw);
+  }
+  .genre-btn{
+    font-family:'Zen Maru Gothic'; font-weight:700; font-size:12.5px;
+    padding:8px 13px; border-radius:999px; border:2px solid rgba(20,21,42,.15);
+    background:transparent; color:var(--ink); cursor:pointer;
+  }
+  .genre-btn.active{background:var(--maru); color:#fff; border-color:var(--maru);}
+
+  .start-btn{
+    font-family:'Fredoka'; font-weight:700; font-size:19px;
+    padding:15px 46px; border-radius:999px; border:none;
+    background:var(--gold); color:#fff; cursor:pointer;
+    box-shadow:0 6px 0 #965c00;
+  }
+  .start-btn:active{transform:translateY(4px); box-shadow:0 2px 0 #965c00;}
+
+  /* ---------- GAME SCREEN ---------- */
+  #game-screen{padding:0;}
+  .zone{
+    position:absolute; top:0; bottom:0; width:50%;
+    display:flex; align-items:center; justify-content:center;
+    transition:background-color .12s ease;
+  }
+  .zone-left{left:0; background:transparent;}
+  .zone-right{right:0; background:transparent;}
+  .zone-symbol{
+    font-family:'Fredoka'; font-weight:700; font-size:15vh; opacity:.16;
+  }
+  .zone-left .zone-symbol{color:var(--maru);}
+  .zone-right .zone-symbol{color:var(--batsu);}
+
+  .hud{
+    position:absolute; top:0; left:0; right:0; z-index:5;
+    padding:16px 18px 0; display:flex; flex-direction:column; gap:8px;
+  }
+  .hud-top{display:flex; justify-content:space-between; align-items:center;}
+  .hud-left{display:flex; align-items:center; gap:8px;}
+  .quit-btn{
+    width:32px; height:32px; border-radius:50%; flex-shrink:0;
+    background:var(--chip-bg); border:1px solid rgba(255,255,255,.14);
+    color:#fff; font-size:13px; font-weight:700; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    backdrop-filter:blur(6px);
+  }
+  .hud-right{display:flex; align-items:center; gap:8px;}
+  .history-btn{
+    font-family:'Zen Maru Gothic'; font-weight:700; font-size:13px;
+    background:var(--chip-bg); border:1px solid rgba(255,255,255,.14);
+    padding:8px 14px; border-radius:999px; backdrop-filter:blur(6px);
+    color:#fff; cursor:pointer;
+  }
+  .top-history-btn{
+    position:absolute; top:18px; right:18px;
+    font-family:'Zen Maru Gothic'; font-weight:700; font-size:13px;
+    background:var(--chip-bg); border:1px solid rgba(255,255,255,.14);
+    padding:8px 14px; border-radius:999px; backdrop-filter:blur(6px);
+    color:#fff; cursor:pointer;
+  }
+  .score-pill{
+    font-family:'Fredoka'; font-weight:700; font-size:15px;
+    background:var(--chip-bg); border:1px solid rgba(255,255,255,.14);
+    padding:7px 16px; border-radius:999px; backdrop-filter:blur(6px);
+    color:#fff;
+  }
+  .score-pill .n{color:#ffcb4d; font-size:18px;}
+  .timer-num{
+    font-family:'Fredoka'; font-weight:700; font-size:20px;
+    background:var(--chip-bg); border:1px solid rgba(255,255,255,.14);
+    padding:7px 16px; border-radius:999px; backdrop-filter:blur(6px); min-width:56px; text-align:center;
+    color:#fff;
+  }
+  .timer-track{height:6px; border-radius:999px; background:rgba(20,21,42,.12); overflow:hidden;}
+  .timer-fill{height:100%; width:100%; background:var(--gold); border-radius:999px; transition:width .2s linear, background-color .3s;}
+
+  /* persistent left/right guide */
+  .side-hint{
+    position:absolute; left:0; right:0; bottom:0; z-index:5;
+    display:flex; justify-content:space-between;
+    padding:0 16px calc(18px + env(safe-area-inset-bottom, 0px));
+    pointer-events:none;
+  }
+  .hint-pill{
+    font-family:'Fredoka'; font-weight:700; font-size:14px;
+    display:flex; align-items:center; gap:6px;
+    padding:9px 16px; border-radius:999px;
+    background:var(--chip-bg); border:1px solid rgba(255,255,255,.14);
+    backdrop-filter:blur(6px);
+    color:#fff;
+    pointer-events:auto; cursor:pointer;
+    transition:transform .1s ease;
+  }
+  .hint-pill:active{transform:scale(.94);}
+  .hint-pill .sym{font-size:17px;}
+  .hint-pill.hint-o .sym{color:#5eebb0;}
+  .hint-pill.hint-x .sym{color:#ff9aa2;}
+
+  .card-wrap{
+    position:absolute; inset:0; z-index:4;
+    display:flex; align-items:center; justify-content:center;
+    padding:0 26px;
+  }
+  .card{
+    width:min(320px, 100%); min-height:180px;
+    background:var(--cream); color:var(--ink);
+    border-radius:24px; padding:26px 24px;
+    display:flex; align-items:center; justify-content:center; text-align:center;
+    font-size:19px; font-weight:700; line-height:1.55;
+    box-shadow:0 14px 34px rgba(20,21,42,.16);
+    border:1px solid rgba(20,21,42,.06);
+    cursor:grab; touch-action:none;
+  }
+  .card.dragging{cursor:grabbing;}
+  .card .qnum{
+    position:absolute; top:14px; left:18px; font-family:'Fredoka'; font-size:12px; opacity:.4; font-weight:700;
+  }
+
+  .flash{
+    position:absolute; inset:0; z-index:6; pointer-events:none;
+    display:flex; align-items:center; justify-content:center;
+    opacity:0;
+  }
+  .flash-text{
+    font-family:'Fredoka'; font-weight:700; font-size:34px;
+    padding:14px 30px; border-radius:20px; color:var(--ink);
+  }
+  .flash-text.correct{background:var(--maru); color:#fff; animation:pop-in .32s cubic-bezier(.3,1.5,.4,1);}
+  .flash-text.wrong{background:var(--batsu); color:#fff; animation:pop-in .32s cubic-bezier(.3,1.5,.4,1);}
+  @keyframes pop-in{
+    0%{ transform:scale(.4); }
+    60%{ transform:scale(1.15); }
+    100%{ transform:scale(1); }
+  }
+
+  /* ---------- 不正解:瞬間フラッシュ+シェイク ---------- */
+  .wrong-flash{
+    position:absolute; inset:0; z-index:8;
+    pointer-events:none; background:var(--batsu); opacity:0;
+  }
+  .wrong-flash.active{ animation:wrong-flash-anim .4s ease-out; }
+  @keyframes wrong-flash-anim{
+    0%{ opacity:.6; }
+    100%{ opacity:0; }
+  }
+  .card-wrap.shake{ animation:shake-anim .35s ease; }
+  @keyframes shake-anim{
+    0%,100%{ transform:translateX(0); }
+    20%{ transform:translateX(-14px); }
+    40%{ transform:translateX(11px); }
+    60%{ transform:translateX(-8px); }
+    80%{ transform:translateX(5px); }
+  }
+
+  /* ---------- カウントダウン ---------- */
+  .countdown-overlay{
+    position:absolute; inset:0; z-index:9;
+    background:rgba(255,255,255,.92);
+    display:flex; align-items:center; justify-content:center;
+    transition:opacity .25s ease;
+  }
+  .countdown-overlay.hidden{ opacity:0; pointer-events:none; }
+  .countdown-num{
+    font-family:'Fredoka'; font-weight:700; color:var(--ink);
+    font-size:96px; line-height:1;
+  }
+  .countdown-num.go{ color:var(--maru); font-size:52px; }
+  .countdown-num.pop{ animation:countdown-pop .55s cubic-bezier(.2,1.4,.4,1); }
+  @keyframes countdown-pop{
+    0%{ transform:scale(.3); opacity:0; }
+    45%{ transform:scale(1.15); opacity:1; }
+    100%{ transform:scale(1); opacity:1; }
+  }
+
+  /* ---------- CONFETTI (正解エフェクト) ---------- */
+  .confetti-layer{
+    position:absolute; inset:0; z-index:7;
+    pointer-events:none; overflow:hidden;
+  }
+  .confetti-piece{
+    position:absolute; top:50%; left:50%;
+    width:8px; height:8px;
+    opacity:0;
+    animation:confetti-burst 1.05s cubic-bezier(.15,.7,.3,1) forwards;
+  }
+  @keyframes confetti-burst{
+    0%{ transform:translate(-50%,-50%) rotate(0deg) scale(.3); opacity:1; }
+    12%{ transform:translate(-50%,-50%) rotate(calc(var(--rot) * 0.2)) scale(1.3); opacity:1; }
+    100%{ transform:translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) rotate(var(--rot)) scale(.5); opacity:0; }
+  }
+
+  /* ---------- END SCREEN ---------- */
+  #end-screen{gap:18px;}
+  .result-label{font-size:14px; opacity:.5; letter-spacing:.08em;}
+  .interrupted-tag{
+    font-family:'Zen Maru Gothic'; font-weight:700; font-size:11px; letter-spacing:0;
+    background:rgba(225,74,86,.12); color:var(--batsu);
+    padding:3px 9px; border-radius:999px; margin-left:4px; opacity:1;
+  }
+  .interrupted-tag.hidden{display:none;}
+  .result-score{font-family:'Fredoka'; font-weight:700; font-size:76px; color:var(--gold); line-height:1;}
+  .result-sub{font-size:14px; opacity:.6;}
+  .result-tier{
+    font-size:15px; font-weight:700; background:rgba(20,21,42,.05);
+    border:1px solid rgba(20,21,42,.1); padding:8px 20px; border-radius:999px;
+  }
+  .retry-btn{
+    margin-top:8px; font-family:'Fredoka'; font-weight:700; font-size:17px;
+    padding:13px 40px; border-radius:999px; border:none;
+    background:var(--ink); color:#fff; cursor:pointer;
+    box-shadow:0 6px 0 #000;
+  }
+  .retry-btn:active{transform:translateY(4px); box-shadow:0 2px 0 #000;}
+
+  .result-stats{
+    display:flex; gap:10px; margin-top:4px;
+  }
+  .stat{
+    display:flex; flex-direction:column; align-items:center; gap:2px;
+    background:rgba(20,21,42,.04); border:1px solid rgba(20,21,42,.09);
+    border-radius:14px; padding:10px 16px; min-width:78px;
+  }
+  .stat-label{font-size:11px; opacity:.6; font-weight:700;}
+  .stat-val{font-family:'Fredoka'; font-weight:700; font-size:20px;}
+  .stat-val.ok{color:var(--maru);}
+  .stat-val.ng{color:var(--batsu);}
+
+  .rank-row{display:flex; gap:14px; margin-top:6px;}
+  .rank-card{
+    display:flex; flex-direction:column; align-items:center; gap:6px;
+    background:rgba(20,21,42,.04); border:1px solid rgba(20,21,42,.09);
+    border-radius:16px; padding:12px 22px; min-width:110px;
+  }
+  .rank-label{font-size:12px; opacity:.65; font-weight:700;}
+  .rank-grade{
+    font-family:'Fredoka'; font-weight:700; font-size:28px; line-height:1;
+  }
+  .rank-grade.grade-D{color:#aeb3c2;}
+  .rank-grade.grade-C{color:#8b91a8;}
+  .rank-grade.grade-B{color:#6f93ad;}
+  .rank-grade.grade-A{color:#3f9e8f;}
+  .rank-grade.grade-S{color:var(--maru);}
+  .rank-grade.grade-SS{color:var(--gold);}
+  .rank-grade.grade-SSS{color:#e0562e;}
+  .rank-grade.grade-EX{color:#c8323e;}
+  .rank-grade.grade-MASTER{
+    background:linear-gradient(90deg,#cc7a00,#e0562e);
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+  .rank-grade.grade-LEGEND{
+    background:linear-gradient(90deg,#4d9eff,#b06bff,#e14a56,#ffcb4d);
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+
+  .end-history-link{
+    background:none; border:none; color:var(--ink); opacity:.55;
+    font-family:'Zen Maru Gothic'; font-size:13px; text-decoration:underline;
+    cursor:pointer; margin-top:2px;
+  }
+
+  /* ---------- HISTORY MODAL ---------- */
+  .modal-overlay{
+    position:fixed; inset:0; z-index:30;
+    background:rgba(10,10,20,.62);
+    display:flex; align-items:center; justify-content:center;
+    padding:24px;
+    opacity:1; transition:opacity .25s ease;
+  }
+  .modal-overlay.hidden{opacity:0; pointer-events:none;}
+  #clear-history-modal{ z-index:40; }
+  .modal-card{
+    width:min(360px, 100%); max-height:74vh;
+    background:var(--cream); color:var(--ink);
+    border-radius:22px; padding:18px 18px 8px;
+    display:flex; flex-direction:column;
+    box-shadow:0 20px 50px rgba(0,0,0,.4);
+  }
+  .modal-header{
+    display:flex; justify-content:space-between; align-items:center;
+    font-weight:700; font-size:15px; padding-bottom:12px;
+    border-bottom:1px solid rgba(20,21,42,.1); margin-bottom:8px; flex-shrink:0;
+  }
+  .modal-header-left{display:flex; align-items:center; gap:8px;}
+  .modal-back{
+    background:rgba(20,21,42,.08); border:none; width:28px; height:28px;
+    border-radius:50%; font-size:14px; font-weight:700; color:var(--ink);
+    cursor:pointer; line-height:1; display:flex; align-items:center; justify-content:center;
+  }
+  .modal-back.hidden{display:none;}
+  .modal-close{
+    background:rgba(20,21,42,.08); border:none; width:28px; height:28px;
+    border-radius:50%; font-size:15px; font-weight:700; color:var(--ink);
+    cursor:pointer; line-height:1;
+  }
+  .modal-list{overflow-y:auto; display:flex; flex-direction:column; padding-bottom:10px;}
+  .modal-empty{opacity:.5; font-size:13px; text-align:center; padding:30px 0;}
+  .g-item{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding:12px 4px; border-bottom:1px solid rgba(20,21,42,.08);
+    cursor:pointer; background:none; border-left:none; border-right:none; border-top:none;
+    width:100%; text-align:left; font-family:'Zen Maru Gothic';
+  }
+  .g-item-left{display:flex; flex-direction:column; gap:2px;}
+  .g-item-date{font-size:11px; opacity:.55;}
+  .g-interrupted{
+    font-family:'Zen Maru Gothic'; font-weight:700; font-size:10px;
+    background:rgba(225,74,86,.12); color:var(--batsu);
+    padding:2px 7px; border-radius:999px; margin-left:5px;
+  }
+  .g-item-score{font-size:14px; font-weight:700; color:var(--ink);}
+  .g-item-right{display:flex; align-items:center; gap:8px;}
+  .g-item-rate{font-family:'Fredoka'; font-weight:700; font-size:15px; opacity:.75;}
+  .g-item-arrow{opacity:.35; font-size:14px;}
+  .clear-history-btn{
+    width:100%; margin-top:10px; padding:12px 0;
+    background:none; border:none; border-top:1px solid rgba(20,21,42,.08);
+    color:var(--batsu); font-family:'Zen Maru Gothic'; font-weight:700; font-size:13px;
+    cursor:pointer;
+  }
+  .g-item-grades{display:flex; gap:4px; margin-top:2px;}
+  .g-grade{
+    font-family:'Fredoka'; font-weight:700; font-size:11px;
+    padding:3px 7px; border-radius:999px; background:rgba(20,21,42,.07);
+  }
+  .g-grade.grade-D{color:#aeb3c2;}
+  .g-grade.grade-C{color:#8b91a8;}
+  .g-grade.grade-B{color:#6f93ad;}
+  .g-grade.grade-A{color:#3f9e8f;}
+  .g-grade.grade-S{color:var(--maru);}
+  .g-grade.grade-SS{color:var(--gold);}
+  .g-grade.grade-SSS{color:#e0562e;}
+  .g-grade.grade-EX{color:#c8323e;}
+  .g-grade.grade-MASTER{color:#a8590a;}
+  .g-grade.grade-LEGEND{color:#8455d1;}
+  .h-item{
+    display:flex; align-items:flex-start; gap:10px;
+    padding:12px 2px; border-bottom:1px solid rgba(20,21,42,.08);
+  }
+  .h-num{font-family:'Fredoka'; font-weight:700; font-size:12px; opacity:.4; flex-shrink:0; width:26px; padding-top:7px;}
+  .h-q{flex:1; font-size:13px; line-height:1.5; font-weight:500; padding-top:5px;}
+  .h-mark{
+    font-family:'Fredoka'; font-weight:700; font-size:14px; flex-shrink:0;
+    width:32px; height:32px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .h-mark.ok{background:var(--maru); color:#fff;}
+  .h-mark.ng{background:var(--batsu); color:#fff;}
+  .h-correct-note{font-size:11px; opacity:.55; margin-top:3px;}
+  .h-exp{
+    font-size:12px; color:var(--ink); opacity:.8; line-height:1.5;
+    margin-top:5px; padding:8px 10px; border-radius:10px;
+    background:rgba(204,122,0,.08);
+  }
+
+  /* ---------- QUIT CONFIRM ---------- */
+  .confirm-card{align-items:center; text-align:center; gap:18px; padding:26px 22px;}
+  .confirm-text{font-size:15px; font-weight:700; line-height:1.6;}
+  .confirm-sub{font-size:12px; font-weight:500; opacity:.55;}
+  .confirm-actions{display:flex; gap:10px; width:100%;}
+  .confirm-btn{
+    flex:1; font-family:'Zen Maru Gothic'; font-weight:700; font-size:14px;
+    padding:12px 0; border-radius:999px; border:none; cursor:pointer;
+  }
+  .confirm-btn.ghost{background:rgba(20,21,42,.07); color:var(--ink);}
+  .confirm-btn.danger{background:var(--batsu); color:#fff;}
+</style>
+</head>
+<body>
+
+<div id="app">
+
+  <!-- START -->
+  <div id="start-screen" class="screen">
+    <button class="top-history-btn" id="top-history-btn">履歴</button>
+    <div class="logo-wrap">
+      <div class="logo-symbol o">○</div>
+      <div class="logo-symbol x">×</div>
+    </div>
+    <h1>フリック○×クイズ</h1>
+    <div class="subtitle">制限時間内に何問正解できるかな?</div>
+
+    <div class="howto">
+      <div class="howto-row"><div class="howto-badge left">←</div>左にフリックで「○(正しい)」</div>
+      <div class="howto-row"><div class="howto-badge right">→</div>右にフリックで「×(間違い)」</div>
+    </div>
+
+    <div class="time-select" id="time-select">
+      <button class="time-btn" data-t="30">30秒</button>
+      <button class="time-btn active" data-t="60">60秒</button>
+      <button class="time-btn" data-t="90">90秒</button>
+    </div>
+
+    <div class="section-label">ジャンル</div>
+    <div class="genre-select" id="genre-select">
+      <button class="genre-btn active" data-g="all">ミックス(全部)</button>
+      <button class="genre-btn" data-g="動物">動物</button>
+      <button class="genre-btn" data-g="歴史">歴史</button>
+      <button class="genre-btn" data-g="食べ物">食べ物</button>
+      <button class="genre-btn" data-g="スポーツ">スポーツ</button>
+      <button class="genre-btn" data-g="ことば">ことば</button>
+      <button class="genre-btn" data-g="雑学">雑学</button>
+      <button class="genre-btn" data-g="アニメ">アニメ</button>
+      <button class="genre-btn" data-g="映画">映画</button>
+      <button class="genre-btn" data-g="音楽">音楽</button>
+    </div>
+
+    <button class="start-btn" id="start-btn">スタート</button>
+    <button class="end-history-link" id="start-history-btn">過去の記録を見る</button>
+  </div>
+
+  <!-- GAME -->
+  <div id="game-screen" class="screen hidden">
+    <div class="zone zone-left" id="zone-left"><div class="zone-symbol">○</div></div>
+    <div class="zone zone-right" id="zone-right"><div class="zone-symbol">×</div></div>
+
+    <div class="hud">
+      <div class="hud-top">
+        <div class="hud-left">
+          <button class="quit-btn" id="quit-btn" aria-label="中断">✕</button>
+          <div class="score-pill">正解 <span class="n num" id="score-num">0</span></div>
+        </div>
+        <div class="hud-right">
+          <button class="history-btn" id="history-btn">履歴</button>
+          <div class="timer-num num" id="timer-num">60</div>
+        </div>
+      </div>
+      <div class="timer-track"><div class="timer-fill" id="timer-fill"></div></div>
+    </div>
+
+    <div class="card-wrap" id="card-wrap">
+      <div class="card" id="card">
+        <span class="qnum num" id="qnum">Q1</span>
+        <span id="qtext">問題文</span>
+      </div>
+    </div>
+
+    <div class="side-hint">
+      <div class="hint-pill hint-o" id="hint-o-btn"><span class="sym">○</span>←左</div>
+      <div class="hint-pill hint-x" id="hint-x-btn">右→<span class="sym">×</span></div>
+    </div>
+
+    <div class="flash" id="flash"><div class="flash-text" id="flash-text"></div></div>
+    <div class="confetti-layer" id="confetti-layer"></div>
+    <div class="wrong-flash" id="wrong-flash"></div>
+
+    <div class="countdown-overlay hidden" id="countdown-overlay">
+      <div class="countdown-num num" id="countdown-num">3</div>
+    </div>
+  </div>
+
+  <!-- QUIT CONFIRM -->
+  <div class="modal-overlay hidden" id="quit-modal">
+    <div class="modal-card confirm-card">
+      <div class="confirm-text">ゲームを中断しますか?<br><span class="confirm-sub">ここまでの回答は履歴に残ります</span></div>
+      <div class="confirm-actions">
+        <button class="confirm-btn ghost" id="quit-cancel">続ける</button>
+        <button class="confirm-btn danger" id="quit-confirm">中断する</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CLEAR HISTORY CONFIRM -->
+  <div class="modal-overlay hidden" id="clear-history-modal">
+    <div class="modal-card confirm-card">
+      <div class="confirm-text">履歴をすべて削除しますか?<br><span class="confirm-sub">この操作は元に戻せません</span></div>
+      <div class="confirm-actions">
+        <button class="confirm-btn ghost" id="clear-history-cancel">キャンセル</button>
+        <button class="confirm-btn danger" id="clear-history-confirm">削除する</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- END -->
+  <div id="end-screen" class="screen hidden">
+    <div class="result-label" id="result-label">RESULT <span class="interrupted-tag hidden" id="interrupted-tag">中断</span></div>
+    <div class="result-score num" id="result-score">0</div>
+    <div class="result-sub" id="result-sub">/ 0問中</div>
+
+    <div class="result-stats">
+      <div class="stat"><span class="stat-label">正解</span><span class="stat-val ok num" id="stat-correct">0</span></div>
+      <div class="stat"><span class="stat-label">不正解</span><span class="stat-val ng num" id="stat-wrong">0</span></div>
+      <div class="stat"><span class="stat-label">正解率</span><span class="stat-val num" id="stat-rate">0%</span></div>
+    </div>
+
+    <div class="rank-row">
+      <div class="rank-card"><div class="rank-label">正確性</div><div class="rank-grade num" id="rank-accuracy">A</div></div>
+      <div class="rank-card"><div class="rank-label">スピード</div><div class="rank-grade num" id="rank-speed">A</div></div>
+    </div>
+
+    <div class="result-tier" id="result-tier">はじめまして!</div>
+    <button class="retry-btn" id="retry-btn">もう一度あそぶ</button>
+    <button class="end-history-link" id="end-history-btn">履歴を見る</button>
+  </div>
+
+  <!-- HISTORY MODAL -->
+  <div class="modal-overlay hidden" id="history-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-header-left">
+          <button class="modal-back hidden" id="history-back">←</button>
+          <span id="history-title">履歴</span>
+        </div>
+        <button class="modal-close" id="history-close">×</button>
+      </div>
+      <div class="modal-list" id="history-list"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const GENRES = ["動物","歴史","食べ物","スポーツ","ことば","雑学","アニメ","映画","音楽"];
+
+const QUESTIONS = [
+  // 動物
+  {q:"アリの脳みそは3つある",a:false,g:"動物",exp:"実際はアリの脳は1つだけです。"},
+  {q:"タコの心臓は3つある",a:true,g:"動物",exp:"えら用が2つ、全身用が1つ、計3つの心臓を持ちます。"},
+  {q:"コアラはクマの仲間である",a:false,g:"動物",exp:"コアラはクマ科ではなく有袋類の仲間です。"},
+  {q:"ラクダのこぶには水が入っている",a:false,g:"動物",exp:"こぶの中身は水ではなく脂肪です。"},
+  {q:"チーターは陸上でもっとも速い動物である",a:true,g:"動物",exp:"最高時速100km超で陸上動物最速とされています。"},
+  {q:"サメは骨がない魚である(軟骨魚類)",a:true,g:"動物",exp:"サメの骨格は硬い骨ではなく軟骨でできています。"},
+  {q:"猫は色をまったく識別できない",a:false,g:"動物",exp:"完全な色盲ではなく、青や緑などは識別できるとされます。"},
+  {q:"ペンギンは空を飛べない鳥である",a:true,g:"動物",exp:"翼はありますが飛行には使わず、代わりに泳ぎが得意です。"},
+  {q:"象は自分の鼻で水を飲んで直接口に運ぶ",a:false,g:"動物",exp:"鼻で水を吸い上げてから口に運んでおり、鼻から直接飲むわけではありません。"},
+  {q:"カタツムリは殻を脱いでヤドカリのように引っ越す",a:false,g:"動物",exp:"カタツムリの殻は体の一部で、脱いで引っ越すことはできません。"},
+  {q:"キリンの首の骨の数は人間の2倍以上ある",a:false,g:"動物",exp:"キリンの首の骨は人間と同じ7個です。"},
+  {q:"フクロウは首を360度回転させることができる",a:false,g:"動物",exp:"実際に回せるのは270度程度までとされています。"},
+  {q:"イルカは眠っている間も片方の脳を起こしている",a:true,g:"動物",exp:"半球睡眠と呼ばれ、片目を開けたまま眠ることもあります。"},
+  {q:"カメレオンは主に周囲へ完全に同化するために体色を変える",a:false,g:"動物",exp:"体色の変化は主に体温調整や感情表現のためとされています。"},
+  {q:"ホッキョクグマの毛は実は透明である",a:true,g:"動物",exp:"毛自体は透明で、光の反射で白く見えています。"},
+  {q:"ダチョウは危険を感じると頭を砂の中に埋める習性がある",a:false,g:"動物",exp:"これは俗説で、実際にそのような行動はしません。"},
+  {q:"ミツバチはダンスで仲間に情報を伝える",a:true,g:"動物",exp:"8の字ダンスで蜜のある場所の方向や距離を伝えます。"},
+  {q:"カンガルーは後ろ向きに歩くことができない",a:true,g:"動物",exp:"後ろ足の構造上、後ろ向きに歩くのが苦手な体のつくりです。"},
+  {q:"パンダの主食は魚である",a:false,g:"動物",exp:"パンダの主食は竹です。"},
+  {q:"コウモリは鳥の仲間である",a:false,g:"動物",exp:"コウモリは鳥ではなく哺乳類です。"},
+  {q:"ラッコは石を使って貝を割ることがある",a:true,g:"動物",exp:"お腹の上に石を置き、貝を叩き割って食べます。"},
+  {q:"猫は基本的に草食動物である",a:false,g:"動物",exp:"猫は肉食動物です。"},
+  {q:"犬は嗅覚が人間よりはるかに優れている",a:true,g:"動物",exp:"嗅覚は人間の数千倍とも言われています。"},
+  {q:"ウサギの歯は一生伸び続ける",a:true,g:"動物",exp:"そのためかじって歯を削る習性があります。"},
+  {q:"クジラは魚類に分類される",a:false,g:"動物",exp:"クジラは哺乳類です。"},
+  {q:"ゾウは陸上に生息する動物の中で最大級である",a:true,g:"動物",exp:"現存する陸上動物の中で最大とされています。"},
+  {q:"ハチドリは後ろ向きに飛ぶことができる",a:true,g:"動物",exp:"翼を高速で動かすことで唯一後ろ向き飛行ができる鳥です。"},
+  {q:"カエルは皮膚呼吸もできる",a:true,g:"動物",exp:"肺だけでなく皮膚でも呼吸ができます。"},
+  {q:"ワニは変温動物である",a:true,g:"動物",exp:"自分で体温を作れず、周囲の温度に依存します。"},
+  {q:"シマウマの縞模様はすべての個体でまったく同じである",a:false,g:"動物",exp:"縞模様は指紋のように1頭ごとに異なります。"},
+  // 歴史
+  {q:"新幹線は日本で最初に開業した高速鉄道である",a:true,g:"歴史",exp:"1964年開業の東海道新幹線が世界初の高速鉄道とされます。"},
+  {q:"1万円札の肖像は現在、渋沢栄一である",a:true,g:"歴史",exp:"2024年発行の新紙幣から渋沢栄一が描かれています。"},
+  {q:"寿司の起源はアメリカである",a:false,g:"歴史",exp:"寿司の起源は日本(または東南アジア)とされています。"},
+  {q:"日本の国旗の丸は青色である",a:false,g:"歴史",exp:"日章旗の丸は赤色です。"},
+  {q:"1円玉は金でできている",a:false,g:"歴史",exp:"1円玉はアルミニウムでできています。"},
+  {q:"東京オリンピックは1964年に一度開催されたことがある",a:true,g:"歴史",exp:"アジア初のオリンピックとして開催されました。"},
+  {q:"万里の長城は宇宙から肉眼ではっきりと見える",a:false,g:"歴史",exp:"実際には宇宙から肉眼で見るのは非常に困難とされています。"},
+  {q:"江戸時代に鎖国が行われていた",a:true,g:"歴史",exp:"一部を除き海外との交流が制限されていました。"},
+  {q:"ピラミッドは古代エジプトで建てられた",a:true,g:"歴史",exp:"古代エジプト王朝時代に建設された巨大建造物です。"},
+  {q:"明治時代よりも江戸時代のほうが後の時代である",a:false,g:"歴史",exp:"江戸時代の後に明治時代が続きます。"},
+  {q:"第二次世界大戦は20世紀に起きた",a:true,g:"歴史",exp:"1939年〜1945年、20世紀の出来事です。"},
+  {q:"元号「令和」のひとつ前は「平成」である",a:true,g:"歴史",exp:"平成の次の元号が令和です。"},
+  {q:"日本国憲法は戦前に施行された",a:false,g:"歴史",exp:"日本国憲法は戦後の1947年に施行されました。"},
+  {q:"自動車は蒸気機関車より先に発明された",a:false,g:"歴史",exp:"蒸気機関車の方が自動車より先に実用化されました。"},
+  {q:"縄文時代は弥生時代より後の時代である",a:false,g:"歴史",exp:"縄文時代の方が弥生時代より前です。"},
+  {q:"コロンブスはアメリカ大陸への到達で知られる人物である",a:true,g:"歴史",exp:"1492年にアメリカ大陸へ到達したとされています。"},
+  {q:"織田信長は江戸幕府を開いた人物である",a:false,g:"歴史",exp:"江戸幕府を開いたのは徳川家康です。"},
+  {q:"パリでは一度もオリンピックが開催されたことがない",a:false,g:"歴史",exp:"パリは過去に複数回オリンピックを開催しています。"},
+  {q:"大化の改新は江戸時代に行われた",a:false,g:"歴史",exp:"大化の改新は飛鳥時代に行われました。"},
+  {q:"明治維新によって鎌倉幕府は終わりを迎えた",a:false,g:"歴史",exp:"明治維新で終わったのは江戸幕府です。"},
+  {q:"鎌倉幕府を開いたのは源頼朝である",a:true,g:"歴史",exp:"源頼朝が初代将軍として鎌倉幕府を開きました。"},
+  {q:"豊臣秀吉は江戸幕府を開いた人物である",a:false,g:"歴史",exp:"江戸幕府を開いたのは徳川家康です。"},
+  {q:"ベルリンの壁崩壊は19世紀に起きた",a:false,g:"歴史",exp:"ベルリンの壁崩壊は1989年、20世紀の出来事です。"},
+  {q:"太平洋戦争は日本とアメリカなどとの間で戦われた",a:true,g:"歴史",exp:"1941年から1945年にかけて戦われました。"},
+  {q:"平安時代には貴族文化が栄えた",a:true,g:"歴史",exp:"国風文化など貴族中心の文化が発展しました。"},
+  {q:"大正時代は昭和時代より後の時代である",a:false,g:"歴史",exp:"大正時代は昭和時代より前です。"},
+  {q:"邪馬台国の女王として卑弥呼が知られている",a:true,g:"歴史",exp:"中国の史書「魏志倭人伝」に記述が残っています。"},
+  {q:"関ヶ原の戦いは徳川家康が勝利した戦いである",a:true,g:"歴史",exp:"1600年の戦いで徳川方が勝利しました。"},
+  {q:"ローマ帝国は古代に存在した国家である",a:true,g:"歴史",exp:"古代地中海世界を支配した大帝国でした。"},
+  {q:"フランス革命は18世紀に起きた",a:true,g:"歴史",exp:"1789年に始まった革命です。"},
+  // 食べ物
+  {q:"バナナは木になる果物である",a:false,g:"食べ物",exp:"バナナは木ではなく大型の草の実です。"},
+  {q:"卵は野菜に分類される",a:false,g:"食べ物",exp:"卵は動物性食品で、野菜ではありません。"},
+  {q:"チョコレートの原料はカカオ豆である",a:true,g:"食べ物",exp:"カカオの種子(カカオ豆)から作られます。"},
+  {q:"包丁は英語で「スプーン」と呼ばれる調理器具である",a:false,g:"食べ物",exp:"包丁は英語で「ナイフ(kitchen knife)」と呼ばれます。"},
+  {q:"トマトは植物学上、果物に分類される",a:true,g:"食べ物",exp:"植物学的には果実(果物)に分類されます。"},
+  {q:"はちみつは腐らない食品として知られている",a:true,g:"食べ物",exp:"水分が少なく殺菌力が高いため長期保存が可能です。"},
+  {q:"ラーメンのルーツは中国にあるとされる",a:true,g:"食べ物",exp:"中国の麺料理がもとになったとされています。"},
+  {q:"コーヒー豆は実は種子である",a:true,g:"食べ物",exp:"コーヒーの実の中にある種子を指します。"},
+  {q:"寿司の「シャリ」とは魚の身のことを指す",a:false,g:"食べ物",exp:"「シャリ」は酢飯のことを指します。"},
+  {q:"すいかは動物性食品に分類される",a:false,g:"食べ物",exp:"すいかは植物性食品(果物・野菜)です。"},
+  {q:"味噌や醤油の主原料は大豆である",a:true,g:"食べ物",exp:"大豆を発酵させて作られます。"},
+  {q:"パスタの原料は主に小麦である",a:true,g:"食べ物",exp:"デュラム小麦などの小麦粉が主原料です。"},
+  {q:"抹茶と緑茶はまったく別の植物から作られる",a:false,g:"食べ物",exp:"どちらも同じチャノキの葉から作られます。"},
+  {q:"カレーのルーツはインドにあるとされる",a:true,g:"食べ物",exp:"インド料理がイギリス経由で日本に伝わったとされます。"},
+  {q:"とうがらしの辛さの成分はカプサイシンである",a:true,g:"食べ物",exp:"辛味成分カプサイシンが含まれています。"},
+  {q:"チーズは牛乳だけから作られ、他の動物の乳は使われない",a:false,g:"食べ物",exp:"山羊乳や羊乳から作られるチーズもあります。"},
+  {q:"お茶に含まれるカフェインには眠気を誘う効果がある",a:false,g:"食べ物",exp:"カフェインには覚醒作用(眠気覚まし効果)があります。"},
+  {q:"フランスパンのバゲットは丸い形をしている",a:false,g:"食べ物",exp:"バゲットは細長い棒状のパンです。"},
+  {q:"讃岐うどんは香川県の名物として知られる",a:true,g:"食べ物",exp:"香川県は「うどん県」とも呼ばれるほどの名産地です。"},
+  {q:"納豆の主な原料は大豆である",a:true,g:"食べ物",exp:"蒸した大豆を納豆菌で発酵させて作ります。"},
+  {q:"天ぷらは日本発祥の調理法である",a:false,g:"食べ物",exp:"ポルトガルなど海外から伝わった調理法とされています。"},
+  {q:"みかんの旬は主に夏である",a:false,g:"食べ物",exp:"みかんの旬は主に冬です。"},
+  {q:"パンの発酵には食塩だけが使われることが多い",a:false,g:"食べ物",exp:"発酵には主にイーストや酵母が使われます。"},
+  {q:"牛乳を発酵させるとヨーグルトになる",a:true,g:"食べ物",exp:"乳酸菌により牛乳が発酵しヨーグルトになります。"},
+  {q:"塩は主に石油から作られることが多い",a:false,g:"食べ物",exp:"塩は主に海水や岩塩から作られます。"},
+  {q:"わさびは主に温かいスープのベースとして使われることが多い",a:false,g:"食べ物",exp:"わさびは主に冷たい料理の薬味として使われます。"},
+  {q:"日本茶にはビタミンCがまったく含まれていない",a:false,g:"食べ物",exp:"緑茶にはビタミンCが含まれています。"},
+  {q:"とんかつは豚肉を使った料理である",a:true,g:"食べ物",exp:"豚肉に衣をつけて揚げた料理です。"},
+  {q:"うなぎは土用の丑の日に食べる習慣がある",a:true,g:"食べ物",exp:"夏バテ防止として食べる風習があります。"},
+  {q:"レモンにはクエン酸が多く含まれる",a:true,g:"食べ物",exp:"酸味のもとであるクエン酸が豊富に含まれます。"},
+  // スポーツ
+  {q:"サッカーの1チームの人数はフィールドで11人である",a:true,g:"スポーツ",exp:"1チーム11人(うち1人はGK)で試合を行います。"},
+  {q:"オリンピックは4年に一度開催される",a:true,g:"スポーツ",exp:"夏季・冬季ともに4年ごとに開催されます。"},
+  {q:"野球の1チームは9人でプレーする",a:true,g:"スポーツ",exp:"守備につく選手は9人です。"},
+  {q:"バスケットボールの試合は前半・後半の2ピリオド制である",a:false,g:"スポーツ",exp:"通常は10分×4クォーター制で行われます。"},
+  {q:"テニスの得点は1,2,3,4と数える",a:false,g:"スポーツ",exp:"テニスの得点は0,15,30,40と数えます。"},
+  {q:"マラソンの正式な距離は42.195kmである",a:true,g:"スポーツ",exp:"オリンピックなどの公式距離として定められています。"},
+  {q:"卓球は「バドミントン」とも呼ばれる",a:false,g:"スポーツ",exp:"卓球は「ピンポン」とも呼ばれます。"},
+  {q:"ラグビーボールは楕円形をしている",a:true,g:"スポーツ",exp:"他の球技と異なり楕円形のボールを使います。"},
+  {q:"柔道は日本発祥のスポーツである",a:true,g:"スポーツ",exp:"嘉納治五郎が創始した日本発祥の武道です。"},
+  {q:"ゴルフのホールインワンは3打でカップに入れることを指す",a:false,g:"スポーツ",exp:"ホールインワンは1打でカップに入れることを指します。"},
+  {q:"F1レースはサッカーと同じくフィールド競技である",a:false,g:"スポーツ",exp:"F1はサーキットを走るモータースポーツです。"},
+  {q:"相撲の土俵は四角い形をしている",a:false,g:"スポーツ",exp:"相撲の土俵は丸い形をしています。"},
+  {q:"バレーボールは1チーム6人で対戦する",a:true,g:"スポーツ",exp:"コート上は1チーム6人で構成されます。"},
+  {q:"水泳のバタフライは6つの泳法のうちの一つである",a:false,g:"スポーツ",exp:"競泳の泳法は自由形・平泳ぎ・背泳ぎ・バタフライの4種です。"},
+  {q:"サッカーのイエローカードは一発退場を意味する",a:false,g:"スポーツ",exp:"一発退場はレッドカードです。イエローは警告です。"},
+  {q:"冬季オリンピックではスキーやスケートが行われる",a:true,g:"スポーツ",exp:"雪や氷を使った種目が中心です。"},
+  {q:"ボウリングは1ゲームで最大5フレームまでプレーする",a:false,g:"スポーツ",exp:"ボウリングは1ゲーム10フレームで行われます。"},
+  {q:"剣道は防具をつけて竹刀で戦う競技である",a:true,g:"スポーツ",exp:"面・胴・小手などの防具をつけて行う武道です。"},
+  {q:"バドミントンはシャトルを使う競技である",a:true,g:"スポーツ",exp:"羽根つきの「シャトル」を打ち合う競技です。"},
+  {q:"アーチェリーは的にボールを投げる競技である",a:false,g:"スポーツ",exp:"アーチェリーは弓矢で的を狙う競技です。"},
+  {q:"スケートボードはオリンピック競技として採用されたことがある",a:true,g:"スポーツ",exp:"東京2020大会から正式競技になりました。"},
+  {q:"重量挙げは砲丸を投げる競技である",a:false,g:"スポーツ",exp:"重量挙げはバーベルを持ち上げる競技です。"},
+  {q:"フェンシングは剣を使う競技である",a:true,g:"スポーツ",exp:"剣(フルーレなど)を使う対戦競技です。"},
+  {q:"100m走の世界記録は8秒台である",a:false,g:"スポーツ",exp:"現在の世界記録は9秒台です。"},
+  {q:"サーフィンは波に乗るスポーツである",a:true,g:"スポーツ",exp:"波の力を利用してボードで滑るスポーツです。"},
+  {q:"ボクシングは階級を設けず体重に関係なく対戦する",a:false,g:"スポーツ",exp:"ボクシングは体重別の階級制で行われます。"},
+  {q:"カーリングは氷上でボールを蹴る競技である",a:false,g:"スポーツ",exp:"カーリングは氷上でストーンを滑らせる競技です。"},
+  {q:"体操競技には床運動や跳馬などの種目がある",a:true,g:"スポーツ",exp:"床運動・跳馬・鉄棒などさまざまな種目があります。"},
+  {q:"駅伝はアメリカ発祥の競技として知られる",a:false,g:"スポーツ",exp:"駅伝は日本発祥の競技として知られています。"},
+  {q:"ハンドボールは手でボールを扱いゴールを狙う競技である",a:true,g:"スポーツ",exp:"手でボールをパス・シュートしてゴールを狙います。"},
+  // ことば
+  {q:"「猫に小判」は価値がわからない人に高価なものを与えても無駄という意味である",a:true,g:"ことば",exp:"値打ちが分からない相手には意味がないことのたとえです。"},
+  {q:"「五十音」とはひらがなの発音の並びのことである",a:true,g:"ことば",exp:"あ行〜わ行までの音の並びを指します。"},
+  {q:"敬語には尊敬語・謙譲語・丁寧語の3種類がある",a:true,g:"ことば",exp:"日本語の敬語はこの3種類に分類されます。"},
+  {q:"「四字熟語」とは漢字4文字で構成される言葉のことである",a:true,g:"ことば",exp:"漢字4文字からなる熟語のことです。"},
+  {q:"「油を売る」は仕事をサボることを意味する慣用句である",a:true,g:"ことば",exp:"無駄話などをして仕事を怠けることを表します。"},
+  {q:"「腹を割って話す」は本音で話し合うという意味である",a:true,g:"ことば",exp:"隠さず本心を伝え合うことを意味します。"},
+  {q:"「馬が合う」とは気が合うという意味である",a:true,g:"ことば",exp:"相性が良く気が合うことを表す慣用句です。"},
+  {q:"「顔が広い」は知り合いが多いという意味である",a:true,g:"ことば",exp:"交友関係が広いことを表す表現です。"},
+  {q:"「情けは人の為ならず」は人に情けをかけるのはその人のためにならないという意味である",a:false,g:"ことば",exp:"正しくは「情けをかければ巡り巡って自分に返ってくる」という意味です。"},
+  {q:"「他山の石」は他人の失敗などを自分の教訓にするという意味である",a:true,g:"ことば",exp:"他人の良くない言動も自分の参考にできるという意味です。"},
+  {q:"カタカナは主に外来語の表記に使われる",a:true,g:"ことば",exp:"外来語や擬音語などの表記によく使われます。"},
+  {q:"「一期一会」は一生に一度だけの出会いを大切にするという意味である",a:true,g:"ことば",exp:"茶道に由来する、出会いを大切にする言葉です。"},
+  {q:"日本語の文字体系にはひらがな・カタカナ・漢字が含まれる",a:true,g:"ことば",exp:"この3種類の文字を組み合わせて表記します。"},
+  {q:"「杞憂」は起こる可能性の高い心配事を指す言葉である",a:false,g:"ことば",exp:"「杞憂」は実際には起こらないような無用な心配のことです。"},
+  {q:"「相槌を打つ」は会話の中で頷いたり返事をしたりすることである",a:true,g:"ことば",exp:"相手の話に合わせて反応を示すことです。"},
+  {q:"「破天荒」は元々「行儀作法に厳しい」という意味である",a:false,g:"ことば",exp:"本来は「誰も成し得なかったことを成し遂げる」という意味です。"},
+  {q:"「役不足」は本来、本人の力量が役目に対して不足しているという意味である",a:false,g:"ことば",exp:"本来は逆で「力量に対して役目が軽すぎる」という意味です。"},
+  {q:"ローマ字は日本語の発音をアルファベットで表記したものである",a:true,g:"ことば",exp:"日本語の音をアルファベットで表す表記法です。"},
+  {q:"「猿も木から落ちる」は初心者にはよくある失敗という意味である",a:false,g:"ことば",exp:"「猿も木から落ちる」は名人でも失敗することがあるという意味です。"},
+  {q:"「石橋を叩いて渡る」は思い切って行動するという意味である",a:false,g:"ことば",exp:"「石橋を叩いて渡る」は用心深く物事を進めるという意味です。"},
+  {q:"「口が滑る」は話すのが非常にうまいという意味である",a:false,g:"ことば",exp:"「口が滑る」はうっかり口に出してしまうという意味です。"},
+  {q:"「棚からぼた餅」は努力の末に成功をつかむことを意味する",a:false,g:"ことば",exp:"「棚からぼた餅」は思いがけない幸運が舞い込むことを意味します。"},
+  {q:"「二階から目薬」は物事がすぐに効果を発揮することのたとえである",a:false,g:"ことば",exp:"「二階から目薬」は効果が薄く回りくどいことのたとえです。"},
+  {q:"「灯台下暗し」は遠くのことほど気づきにくいという意味である",a:false,g:"ことば",exp:"「灯台下暗し」は身近なことほど気づきにくいという意味です。"},
+  {q:"「花より団子」は風流よりも実利を選ぶことのたとえである",a:true,g:"ことば",exp:"見た目より実質を重んじることのたとえです。"},
+  {q:"「七転び八起き」は一度の失敗で諦めることのたとえである",a:false,g:"ことば",exp:"「七転び八起き」は何度失敗しても立ち上がることのたとえです。"},
+  {q:"「善は急げ」は物事はじっくり時間をかけるべきという意味である",a:false,g:"ことば",exp:"「善は急げ」は良いと思ったらすぐ行動すべきという意味です。"},
+  {q:"「口は災いの元」はたくさん話すほど信頼されるという意味である",a:false,g:"ことば",exp:"「口は災いの元」は不用意な発言が問題を招くという意味です。"},
+  {q:"「郷に入っては郷に従え」は自分のやり方を貫くべきという意味である",a:false,g:"ことば",exp:"「郷に入っては郷に従え」はその土地の習慣に従うべきという意味です。"},
+  {q:"「弘法にも筆の誤り」は名人は絶対に間違えないという意味である",a:false,g:"ことば",exp:"「弘法にも筆の誤り」は名人でも間違えることがあるという意味です。"},
+  // 雑学
+  {q:"1年は364日である",a:false,g:"雑学",exp:"1年は365日(うるう年は366日)です。"},
+  {q:"1週間は8日である",a:false,g:"雑学",exp:"1週間は7日です。"},
+  {q:"耳あかは常に湿っているものだけである",a:false,g:"雑学",exp:"耳あかには乾いたタイプ(乾性)と湿ったタイプ(湿性)があります。"},
+  {q:"エベレストの標高はおよそ8848m前後とされる",a:true,g:"雑学",exp:"世界最高峰の標高として知られています。"},
+  {q:"世界には50か国に満たない数の国しか存在しない",a:false,g:"雑学",exp:"世界にはおよそ190以上の国が存在するとされています。"},
+  {q:"富士山は活火山に分類される",a:true,g:"雑学",exp:"現在も活動の可能性がある活火山です。"},
+  {q:"郵便番号は日本全国どこでも同じ桁数である",a:true,g:"雑学",exp:"日本全国で7桁の番号が使われています。"},
+  {q:"1日は24時間である",a:true,g:"雑学",exp:"地球の自転周期を基準に24時間と定められています。"},
+  {q:"水は氷点下になれば必ず凍る",a:false,g:"雑学",exp:"条件によっては氷点下でも凍らない過冷却状態になることがあります。"},
+  {q:"信号機の色は世界共通で赤・黄・青(緑)である",a:true,g:"雑学",exp:"多くの国で同じ3色が採用されています。"},
+  {q:"日本の元号は10年ごとに自動的に変わる",a:false,g:"雑学",exp:"元号は天皇の即位などをきっかけに変わります。"},
+  {q:"満年齢と数え年は同じ数え方である",a:false,g:"雑学",exp:"数え年は生まれた時点で1歳と数えるなど異なる数え方です。"},
+  {q:"時差は経度によって生まれる",a:true,g:"雑学",exp:"地球の自転と経度の違いにより時差が生まれます。"},
+  {q:"1トンは1000キログラムである",a:true,g:"雑学",exp:"1t=1000kgと定義されています。"},
+  {q:"名刺交換の際、目下の人から先に渡すのがマナーとされる",a:true,g:"雑学",exp:"ビジネスマナーとして一般的にそう言われています。"},
+  {q:"お辞儀の角度には世界共通の国際基準がある",a:false,g:"雑学",exp:"お辞儀の角度に国際的な統一基準はありません。"},
+  {q:"「携帯電話」の携帯は充電式であることを意味する",a:false,g:"雑学",exp:"「携帯」は持ち運べることを意味します。"},
+  {q:"ハンコ(印鑑)は日本の公的手続きで長く使われてきた",a:true,g:"雑学",exp:"契約や行政手続きで広く使われてきました。"},
+  {q:"1分は60秒である",a:true,g:"雑学",exp:"時間の単位として定義されています。"},
+  {q:"1キロメートルは1000メートルである",a:true,g:"雑学",exp:"メートル法の単位として定義されています。"},
+  {q:"うるう年はおおよそ4年に一度ある",a:true,g:"雑学",exp:"ただし100で割り切れて400で割り切れない年は例外です。"},
+  {q:"消費税は日本には存在しない税金である",a:false,g:"雑学",exp:"日本には消費税が存在します。"},
+  {q:"スマートフォンの画面は物理ボタンでの操作が主流である",a:false,g:"雑学",exp:"現在はタッチ操作が主流です。"},
+  {q:"電子レンジは食品を冷やす調理家電である",a:false,g:"雑学",exp:"電子レンジは食品を温める調理家電です。"},
+  {q:"洗濯機には縦型しか存在しない",a:false,g:"雑学",exp:"縦型のほかドラム式の洗濯機もあります。"},
+  {q:"日本では車は左側通行である",a:true,g:"雑学",exp:"日本の道路交通法で左側通行と定められています。"},
+  {q:"パスポートは海外に渡航する際に必要な身分証明書である",a:true,g:"雑学",exp:"海外渡航の際に必要な公的身分証明書です。"},
+  {q:"コンビニは正午の1時間しか営業しない店舗が多い",a:false,g:"雑学",exp:"24時間営業の店舗が多いのが特徴です。"},
+  {q:"自転車は道路交通法上、歩行者と同じ扱いを受ける",a:false,g:"雑学",exp:"自転車は道路交通法上「軽車両」に分類されます。"},
+  {q:"「フルネーム」とは姓と名の両方を指す言葉である",a:true,g:"雑学",exp:"姓名をあわせたものをフルネームと呼びます。"},
+  // アニメ
+  {q:"「ドラえもん」はネコ型ロボットが主人公のアニメ作品である",a:true,g:"アニメ",exp:"22世紀からやってきたネコ型ロボットが主人公です。"},
+  {q:"「サザエさん」は日本で長年放送され続けているアニメ番組である",a:true,g:"アニメ",exp:"1969年から続く長寿アニメとして知られています。"},
+  {q:"「ポケットモンスター」はもともと絵本作品として誕生した",a:false,g:"アニメ",exp:"もともとは携帯ゲーム機用のゲーム作品として誕生しました。"},
+  {q:"スタジオジブリは「となりのトトロ」を制作したことで知られる",a:true,g:"アニメ",exp:"スタジオジブリの代表作の一つです。"},
+  {q:"「鬼滅の刃」はもともとライトノベル作品として発表された",a:false,g:"アニメ",exp:"もともとは漫画作品として連載されていました。"},
+  {q:"「ONE PIECE」の主人公はルフィという名前である",a:true,g:"アニメ",exp:"モンキー・D・ルフィが主人公です。"},
+  {q:"「NARUTO」の主人公は忍者を目指す少年である",a:true,g:"アニメ",exp:"うずまきナルトが火影を目指す物語です。"},
+  {q:"「クレヨンしんちゃん」の主人公は野原みさえという名前である",a:false,g:"アニメ",exp:"主人公は野原しんのすけで、みさえは母親です。"},
+  {q:"「千と千尋の神隠し」はアカデミー賞長編アニメーション映画賞を受賞した作品である",a:true,g:"アニメ",exp:"スタジオジブリ作品として同賞を受賞しました。"},
+  {q:"「名探偵コナン」の主人公はもともと小学生だった",a:false,g:"アニメ",exp:"主人公はもともと高校生で、薬で小学生の姿になりました。"},
+  {q:"「ちびまる子ちゃん」の舞台は北海道がモデルとされている",a:false,g:"アニメ",exp:"舞台は静岡県がモデルとされています。"},
+  {q:"「アンパンマン」はやなせたかしによって生み出されたキャラクターである",a:true,g:"アニメ",exp:"漫画家やなせたかし氏が生み出しました。"},
+  {q:"「機動戦士ガンダム」は巨大ロボットが登場するアニメシリーズである",a:true,g:"アニメ",exp:"モビルスーツと呼ばれる巨大ロボットが登場します。"},
+  {q:"「ドラゴンボール」の主人公はベジータという名前である",a:false,g:"アニメ",exp:"主人公は孫悟空で、ベジータは別のキャラクターです。"},
+  {q:"「進撃の巨人」は巨人と人類の戦いを描いた作品である",a:true,g:"アニメ",exp:"巨人の脅威にさらされる人類を描いた物語です。"},
+  {q:"「美少女戦士セーラームーン」の主人公は変身せずに戦う剣士である",a:false,g:"アニメ",exp:"主人公は変身して戦う魔法少女です。"},
+  {q:"「魔女の宅急便」の主人公は魔女の修行をする少女キキである",a:true,g:"アニメ",exp:"13歳の魔女キキが主人公です。"},
+  {q:"「新世紀エヴァンゲリオン」には巨大な人型兵器「エヴァ」が登場する",a:true,g:"アニメ",exp:"汎用人型決戦兵器「エヴァンゲリオン」が登場します。"},
+  {q:"「ちいかわ」は巨大なロボットたちが登場する作品である",a:false,g:"アニメ",exp:"小さくてかわいい生き物たちが登場する作品です。"},
+  {q:"「STAND BY ME ドラえもん」はドラえもんを題材にした手描き2Dアニメ映画である",a:false,g:"アニメ",exp:"実際は3DCGで制作されたアニメ映画です。"},
+  {q:"「呪術廻戦」は呪いを祓う呪術師たちを描いた作品である",a:true,g:"アニメ",exp:"呪術師たちが呪いと戦う物語です。"},
+  {q:"「コードギアス」は料理をテーマにした作品である",a:false,g:"アニメ",exp:"学園と戦争を組み合わせたSF作品です。"},
+  {q:"「あの日見た花の名前を僕達はまだ知らない。」は通称「あの空」と呼ばれる作品である",a:false,g:"アニメ",exp:"通称は「あの花」です。"},
+  {q:"「STEINS;GATE」は野球を題材にした作品である",a:false,g:"アニメ",exp:"タイムトラベルを題材にしたSF作品です。"},
+  {q:"アニメ映画「君の名は。」は新海誠が監督を務めた",a:true,g:"アニメ",exp:"新海誠監督のヒット作です。"},
+  {q:"「サザエさん」の主人公一家の飼い猫はミケという名前である",a:false,g:"アニメ",exp:"飼い猫の名前はタマです。"},
+  {q:"「ちびまる子ちゃん」の原作者はさくらももこである",a:true,g:"アニメ",exp:"漫画家さくらももこ氏の原作です。"},
+  {q:"「サザエさん」に登場するひみつ道具の代表格は「どこでもドア」である",a:false,g:"アニメ",exp:"「どこでもドア」はドラえもんに登場するひみつ道具です。"},
+  {q:"「銀魂」は恋愛と料理が融合した世界観の作品である",a:false,g:"アニメ",exp:"SFと時代劇が融合した世界観の作品です。"},
+  {q:"「僕のヒーローアカデミア」は個性(能力)を持つ人々が登場するヒーロー作品である",a:true,g:"アニメ",exp:"「個性」と呼ばれる能力を持つ世界が舞台です。"},
+  // 映画
+  {q:"アカデミー賞はアメリカの映画賞である",a:true,g:"映画",exp:"アメリカ映画芸術科学アカデミーが主催する映画賞です。"},
+  {q:"映画「タイタニック」は実際の海難事故を題材にした作品である",a:true,g:"映画",exp:"1912年の実際のタイタニック号沈没事故が題材です。"},
+  {q:"カンヌ国際映画祭はフランスで開催される映画祭である",a:true,g:"映画",exp:"フランス・カンヌで毎年開催される映画祭です。"},
+  {q:"「スター・ウォーズ」シリーズは1作品のみで完結している",a:false,g:"映画",exp:"複数の三部作からなる長編シリーズです。"},
+  {q:"ピクサーはCGアニメーション映画で知られるスタジオである",a:true,g:"映画",exp:"「トイ・ストーリー」などで知られるCGアニメスタジオです。"},
+  {q:"映画「ジュラシック・パーク」には恐竜が登場する",a:true,g:"映画",exp:"遺伝子技術で復活した恐竜が登場します。"},
+  {q:"チャップリンはサイレント映画時代に活躍した俳優・監督である",a:true,g:"映画",exp:"無声映画時代の代表的な俳優・監督です。"},
+  {q:"「ハリー・ポッター」シリーズは原作小説をもとに映画化された",a:true,g:"映画",exp:"J.K.ローリングの小説が原作です。"},
+  {q:"映画館で上映される作品にはすべて年齢制限が一切ない",a:false,g:"映画",exp:"作品によっては年齢制限が設けられることがあります。"},
+  {q:"3D映画は目を閉じたまま鑑賞するのが一般的である",a:false,g:"映画",exp:"専用メガネをかけて鑑賞するのが一般的です。"},
+  {q:"映画のエンドロールには次回作のあらすじだけが表示される",a:false,g:"映画",exp:"通常は制作に関わったスタッフ・キャストの名前が表示されます。"},
+  {q:"「ゴジラ」シリーズは日本発祥の特撮怪獣映画である",a:true,g:"映画",exp:"1954年の第1作から続く日本発の特撮映画です。"},
+  {q:"「アナと雪の女王」はディズニーのアニメーション映画である",a:true,g:"映画",exp:"ウォルト・ディズニー制作のアニメ映画です。"},
+  {q:"映画の興行収入は公開初日に確定し、その後は一切変動しない",a:false,g:"映画",exp:"興行収入は公開後も上映が続く限り変動します。"},
+  {q:"「バック・トゥ・ザ・フューチャー」はタイムトラベルを題材にした映画である",a:true,g:"映画",exp:"タイムマシンで過去や未来へ行く物語です。"},
+  {q:"実写映画とアニメーション映画はまったく同じ撮影・制作手法で作られる",a:false,g:"映画",exp:"実写とアニメでは撮影・制作の手法が異なります。"},
+  {q:"「E.T.」はスティーブン・スピルバーグが監督した映画である",a:true,g:"映画",exp:"スピルバーグ監督の代表作の一つです。"},
+  {q:"映画祭でグランプリを受賞した作品は必ず興行収入でも1位になる",a:false,g:"映画",exp:"映画祭の評価と興行収入は必ずしも一致しません。"},
+  {q:"「ロード・オブ・ザ・リング」はオリジナル脚本のみで作られた映画シリーズである",a:false,g:"映画",exp:"J.R.R.トールキンの小説を原作とした映画シリーズです。"},
+  {q:"映画のジャンルはアクションの1種類のみである",a:false,g:"映画",exp:"ホラーやコメディなど多様なジャンルがあります。"},
+  {q:"モノクロ映画とは白黒で撮影・上映される映画のことである",a:true,g:"映画",exp:"カラーではなく白黒で制作された映画のことです。"},
+  {q:"映画「タイタニック」の監督はジェームズ・キャメロンである",a:true,g:"映画",exp:"ジェームズ・キャメロン監督の作品です。"},
+  {q:"映画の予告編は本編公開後にのみ公開される",a:false,g:"映画",exp:"通常は本編公開前に予告編が公開されます。"},
+  {q:"「トイ・ストーリー」は世界初の長編フルCGアニメーション映画とされる",a:true,g:"映画",exp:"1995年公開の世界初の長編フルCGアニメ映画です。"},
+  {q:"映画館のスクリーンサイズは世界中どこでも完全に同一である",a:false,g:"映画",exp:"映画館によってスクリーンサイズは異なります。"},
+  {q:"邦画とはアメリカで製作された映画のことを指す",a:false,g:"映画",exp:"邦画とは日本で製作された映画のことを指します。"},
+  {q:"洋画とは主に日本国内で製作された映画のことを指す",a:false,g:"映画",exp:"洋画とは主に海外で製作された映画のことを指します。"},
+  {q:"映画「ジョーズ」にはサメが登場する",a:true,g:"映画",exp:"人喰いザメを題材にしたパニック映画です。"},
+  {q:"特撮映画では模型やミニチュアは一切使用されない",a:false,g:"映画",exp:"特撮映画では模型やミニチュアがよく使われます。"},
+  {q:"リメイク映画とは完全にオリジナルの新作映画のことである",a:false,g:"映画",exp:"リメイクとは過去の作品を作り直した映画のことです。"},
+  // 音楽
+  {q:"音楽の五線譜には音の高さと長さが記される",a:true,g:"音楽",exp:"五線譜で音の高さとリズム(長さ)を表します。"},
+  {q:"ピアノは鍵盤楽器の一種である",a:true,g:"音楽",exp:"鍵盤を押して音を出す鍵盤楽器です。"},
+  {q:"バイオリンは弓を使って弦をこすって音を出す楽器である",a:true,g:"音楽",exp:"弓で弦をこすって音を出す弦楽器です。"},
+  {q:"「カノン」はパッヘルベルが作曲したクラシック曲として知られる",a:true,g:"音楽",exp:"パッヘルベルの代表曲として知られています。"},
+  {q:"交響曲は主にソロギターのために書かれた楽曲である",a:false,g:"音楽",exp:"交響曲は主にオーケストラのために書かれた楽曲です。"},
+  {q:"ドラムセットは打楽器の組み合わせでできている",a:true,g:"音楽",exp:"複数の打楽器を組み合わせたセットです。"},
+  {q:"「第九」はベートーヴェンが作曲した交響曲として知られる",a:true,g:"音楽",exp:"交響曲第9番として知られる作品です。"},
+  {q:"J-POPはフランスのポピュラー音楽を指す言葉である",a:false,g:"音楽",exp:"J-POPは日本のポピュラー音楽を指す言葉です。"},
+  {q:"アカペラは楽器の伴奏なしで歌う歌唱スタイルである",a:true,g:"音楽",exp:"楽器を使わず声だけで演奏するスタイルです。"},
+  {q:"ギターには弦の数がおおよそ20本のタイプが一般的である",a:false,g:"音楽",exp:"一般的なギターは6本弦のタイプです。"},
+  {q:"音楽のテンポは1分間の観客数で表されることがある",a:false,g:"音楽",exp:"テンポは1分間の拍数(BPM)で表されます。"},
+  {q:"オペラは歌と演技を組み合わせた舞台芸術である",a:true,g:"音楽",exp:"歌唱と演技を組み合わせた総合舞台芸術です。"},
+  {q:"モーツァルトは古典派を代表する作曲家の一人である",a:true,g:"音楽",exp:"古典派音楽を代表する作曲家です。"},
+  {q:"ヒップホップは歌詞を一切使わない器楽曲専用のスタイルである",a:false,g:"音楽",exp:"ラップなど言葉を使う要素も含む音楽スタイルです。"},
+  {q:"「蛍の光」は日本で運動会の徒競走でよく流れる曲として知られる",a:false,g:"音楽",exp:"卒業式や年末によく流れる曲として知られています。"},
+  {q:"サックスは主に木でできた金管楽器に分類される",a:false,g:"音楽",exp:"サックスは金属製ですが木管楽器に分類されます。"},
+  {q:"コンサートホールでは生演奏を鑑賞することができる",a:true,g:"音楽",exp:"生演奏を楽しむための専用施設です。"},
+  {q:"音楽のジャンルはクラシックただ1種類しか存在しない",a:false,g:"音楽",exp:"ロックやジャズなど多様なジャンルが存在します。"},
+  {q:"メトロノームは音の高さを測定するための道具である",a:false,g:"音楽",exp:"メトロノームは一定のテンポを刻むための道具です。"},
+  {q:"「威風堂々」はエルガーが作曲した楽曲として知られる",a:true,g:"音楽",exp:"イギリスの作曲家エルガーの代表作です。"},
+  {q:"レコードは現在でも唯一の音楽記録媒体である",a:false,g:"音楽",exp:"現在はCDや配信など他の媒体も広く使われています。"},
+  {q:"ミュージカルはセリフのみで進行し、歌や踊りは一切使わない舞台作品である",a:false,g:"音楽",exp:"歌や踊りを交えて物語を進める舞台作品です。"},
+  {q:"童謡は子ども向けに作られた歌のことを指す",a:true,g:"音楽",exp:"子どものために作られた歌を指します。"},
+  {q:"音楽フェスティバルは必ず1組のアーティストのみが出演する",a:false,g:"音楽",exp:"多くの場合、複数のアーティストが出演します。"},
+  {q:"カラオケは日本発祥の娯楽文化として世界に広まったとされる",a:true,g:"音楽",exp:"日本で生まれ、世界中に広まった文化です。"},
+  {q:"「エリーゼのために」はベートーヴェンの作品として知られるピアノ曲である",a:true,g:"音楽",exp:"ベートーヴェンの有名なピアノ小品です。"},
+  {q:"吹奏楽は弦楽器のみで編成される音楽形態である",a:false,g:"音楽",exp:"吹奏楽は主に管楽器・打楽器で編成されます。"},
+  {q:"民謡は最新のヒットチャート曲だけを指す言葉である",a:false,g:"音楽",exp:"民謡はその地域に古くから伝わる歌を指します。"},
+  {q:"音楽用語の「フォルテ」は弱く演奏することを意味する",a:false,g:"音楽",exp:"「フォルテ」は強く演奏することを意味します。"},
+  {q:"チェロはバイオリンよりも大きく低い音域を持つ弦楽器である",a:true,g:"音楽",exp:"バイオリンより大きく、低い音域を持つ弦楽器です。"},
+];// ---- 問い方バリエーション(肯定⇔否定の自動言い換え) ----
+// 文末パターンをもとに、意味が正反対になる自然な言い換えを生成する。
+// 対応しない文末(慣用表現など)は無理に変換せず、そのまま単一の問い方として扱う。
+const NEGATION_PAIRS = [
+  ["されていない","されている"], ["されている","されていない"],
+  ["していない","している"],     ["している","していない"],
+  ["ことがある","ことはない"],   ["ことはない","ことがある"],
+  ["ではない","である"],         ["である","ではない"],
+  ["でない","である"],
+  ["できない","できる"],         ["できる","できない"],
+  ["されない","される"],         ["される","されない"],
+  ["られない","られる"],         ["られる","られない"],
+  ["われない","われる"],         ["われる","われない"],
+  ["ていない","ている"],         ["ている","ていない"],
+  ["えない","える"],             ["える","えない"],
+  ["いない","いる"],             ["いる","いない"],
+].sort((x, y) => y[0].length - x[0].length);
+
+function negate(text){
+  for(const [from, to] of NEGATION_PAIRS){
+    if(text.endsWith(from)){
+      return text.slice(0, -from.length) + to;
+    }
+  }
+  return null;
+}
+
+QUESTIONS.forEach(q => { q.neg = negate(q.q); });
+
+
+let selectedTime = 60;
+let timeLeft = 60;
+let score = 0;
+let answered = 0;
+let queue = [];
+let currentPool = [];
+let qIndex = 0;
+let timerId = null;
+let locked = false;
+let currentGameLog = [];
+let allGames = [];
+
+const HISTORY_KEY = 'marubatsu_quiz_games_v1';
+
+// Claude Artifact上ではwindow.storageを、単体のブラウザではlocalStorageを使う。
+// どちらも使えない/失敗する場合は保存せず、そのままメモリ上だけで動作する。
+async function saveGamesToStorage(games){
+  const payload = JSON.stringify(games);
+  try {
+    if(window.storage && typeof window.storage.set === 'function'){
+      const result = await window.storage.set(HISTORY_KEY, payload);
+      if(result){ return; }
+      // resultがnullの場合は失敗とみなし、下のlocalStorageにフォールバック
+    }
+  } catch(err){ /* window.storageが使えない環境。localStorageにフォールバック */ }
+  try {
+    localStorage.setItem(HISTORY_KEY, payload);
+  } catch(err){ /* 保存できる場所がない場合は諦める(メモリ上でのみ動作) */ }
+}
+
+async function loadGamesFromStorage(){
+  try {
+    if(window.storage && typeof window.storage.get === 'function'){
+      const res = await window.storage.get(HISTORY_KEY);
+      if(res && res.value) return JSON.parse(res.value);
+    }
+  } catch(err){ /* キー未作成 or 利用不可。localStorageにフォールバック */ }
+  try {
+    const raw = localStorage.getItem(HISTORY_KEY);
+    if(raw) return JSON.parse(raw);
+  } catch(err){ /* 何もできない場合は空で開始 */ }
+  return [];
+}
+
+(async function initHistory(){
+  try {
+    const saved = await loadGamesFromStorage();
+    allGames = saved.map(g => ({ ...g, date: new Date(g.date) }));
+  } catch(err){
+    allGames = [];
+  }
+})();
+let totalResponseMs = 0;
+let questionShownAt = 0;
+
+const startScreen = document.getElementById('start-screen');
+const gameScreen = document.getElementById('game-screen');
+const endScreen = document.getElementById('end-screen');
+const card = document.getElementById('card');
+const qtext = document.getElementById('qtext');
+const qnum = document.getElementById('qnum');
+const scoreNum = document.getElementById('score-num');
+const timerNum = document.getElementById('timer-num');
+const timerFill = document.getElementById('timer-fill');
+const zoneLeft = document.getElementById('zone-left');
+const zoneRight = document.getElementById('zone-right');
+const flash = document.getElementById('flash');
+const flashText = document.getElementById('flash-text');
+const confettiLayer = document.getElementById('confetti-layer');
+const wrongFlash = document.getElementById('wrong-flash');
+const cardWrap = document.getElementById('card-wrap');
+const countdownOverlay = document.getElementById('countdown-overlay');
+const countdownNum = document.getElementById('countdown-num');
+const historyBtn = document.getElementById('history-btn');
+const endHistoryBtn = document.getElementById('end-history-btn');
+const historyModal = document.getElementById('history-modal');
+const historyClose = document.getElementById('history-close');
+const historyBack = document.getElementById('history-back');
+const historyTitle = document.getElementById('history-title');
+const historyList = document.getElementById('history-list');
+const hintOBtn = document.getElementById('hint-o-btn');
+const hintXBtn = document.getElementById('hint-x-btn');
+const quitBtn = document.getElementById('quit-btn');
+const quitModal = document.getElementById('quit-modal');
+const clearHistoryModal = document.getElementById('clear-history-modal');
+const quitCancel = document.getElementById('quit-cancel');
+const quitConfirmBtn = document.getElementById('quit-confirm');
+const resultLabel = document.getElementById('result-label');
+const interruptedTag = document.getElementById('interrupted-tag');
+
+// time select
+document.getElementById('time-select').addEventListener('click', (e)=>{
+  const btn = e.target.closest('.time-btn');
+  if(!btn) return;
+  document.querySelectorAll('.time-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  selectedTime = parseInt(btn.dataset.t, 10);
+});
+
+// genre select
+let selectedGenre = 'all';
+document.getElementById('genre-select').addEventListener('click', (e)=>{
+  const btn = e.target.closest('.genre-btn');
+  if(!btn) return;
+  document.querySelectorAll('.genre-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  selectedGenre = btn.dataset.g;
+});
+
+function genreLabel(g){
+  return g === 'all' ? 'ミックス(全部)' : g;
+}
+
+document.getElementById('start-btn').addEventListener('click', startGame);
+document.getElementById('start-history-btn').addEventListener('click', openGamesHistory);
+document.getElementById('top-history-btn').addEventListener('click', openGamesHistory);
+document.getElementById('retry-btn').addEventListener('click', ()=>{
+  endScreen.classList.add('hidden');
+  startScreen.classList.remove('hidden');
+});
+
+function shuffle(arr){
+  const a = arr.slice();
+  for(let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
+  }
+  return a;
+}
+
+function startGame(){
+  score = 0; answered = 0; qIndex = 0; timeLeft = selectedTime; locked = true;
+  currentGameLog = [];
+  totalResponseMs = 0;
+  currentPool = selectedGenre === 'all' ? QUESTIONS : QUESTIONS.filter(q => q.g === selectedGenre);
+  queue = shuffle(currentPool);
+  scoreNum.textContent = score;
+  timerNum.textContent = timeLeft;
+  timerFill.style.width = '100%';
+  timerFill.style.background = 'var(--gold)';
+
+  startScreen.classList.add('hidden');
+  endScreen.classList.add('hidden');
+  gameScreen.classList.remove('hidden');
+
+  runCountdown(()=>{
+    loadQuestion();
+    runTimer();
+  });
+}
+
+function runCountdown(onDone){
+  const steps = ['3', '2', '1', 'スタート!'];
+  const durations = [700, 700, 700, 450];
+  let i = 0;
+  countdownOverlay.classList.remove('hidden');
+
+  function step(){
+    countdownNum.textContent = steps[i];
+    countdownNum.classList.toggle('go', steps[i] === 'スタート!');
+    countdownNum.classList.remove('pop');
+    void countdownNum.offsetWidth; // reflow でアニメーションを再トリガー
+    countdownNum.classList.add('pop');
+
+    const d = durations[i];
+    i++;
+    if(i < steps.length){
+      setTimeout(step, d);
+    } else {
+      setTimeout(()=>{
+        countdownOverlay.classList.add('hidden');
+        onDone();
+      }, d);
+    }
+  }
+  step();
+}
+
+function runTimer(){
+  clearInterval(timerId);
+  timerId = setInterval(()=>{
+    timeLeft -= 1;
+    timerNum.textContent = Math.max(timeLeft,0);
+    timerFill.style.width = (Math.max(timeLeft,0)/selectedTime*100)+'%';
+    if(timeLeft <= 10) timerFill.style.background = 'var(--batsu)';
+    if(timeLeft <= 0){
+      clearInterval(timerId);
+      endGame();
+    }
+  },1000);
+}
+
+let currentDisplay = { text: '', correct: false };
+
+function loadQuestion(){
+  if(qIndex >= queue.length){ queue = shuffle(currentPool); qIndex = 0; }
+  const base = queue[qIndex];
+  let text = base.q;
+  let correct = base.a;
+  if(base.neg && Math.random() < 0.5){
+    text = base.neg;
+    correct = !base.a;
+  }
+  currentDisplay = { text, correct, exp: base.exp || '' };
+  qtext.textContent = text;
+  qnum.textContent = 'Q'+(answered+1);
+  card.style.transition = 'none';
+  card.style.transform = 'translate(0px,0px) rotate(0deg)';
+  card.style.opacity = '1';
+  requestAnimationFrame(()=>{ card.style.transition = ''; });
+  locked = false;
+  questionShownAt = performance.now();
+}
+
+const RANK_NAMES = ['D','C','B','A','S','SS','SSS','EX','MASTER','LEGEND'];
+
+// 正答率(0〜1)を0〜9の段階インデックスに変換
+function accuracyIndex(rate){
+  const th = [0.20, 0.35, 0.48, 0.60, 0.70, 0.80, 0.88, 0.94, 0.98];
+  for(let i = 0; i < th.length; i++){ if(rate < th[i]) return i; }
+  return th.length;
+}
+
+// 平均回答時間(秒・小さいほど速い)を0〜9の段階インデックスに変換
+function speedIndex(avgSec){
+  // 平均回答時間(秒)が短いほど上位。値が大きい(遅い)方から順に判定する
+  const th = [4.5, 3.8, 3.2, 2.7, 2.3, 1.9, 1.5, 1.15, 0.85];
+  for(let i = 0; i < th.length; i++){ if(avgSec >= th[i]) return i; }
+  return th.length;
+}
+
+function rankFromIndex(idx){ return RANK_NAMES[Math.max(0, Math.min(9, idx))]; }
+
+const LEVEL_COMMENTS = [
+  'まずは1問ずつ、じっくり慣れていこう!',
+  '少しずつコツをつかんできた感じ!',
+  '基礎はしっかりできてきた!',
+  'なかなかの実力!安定感が出てきた',
+  'かなり良い感触!このペースで続けよう',
+  '上級者の入り口に立った!',
+  'かなりの実力者。自信を持っていい',
+  'もう達人クラスの仕上がり!',
+  '圧倒的な仕上がり。ほぼ隙がない',
+  '伝説級のプレイ。文句なしの結果!'
+];
+
+function overallComment(accIdx, spdIdx){
+  const overall = Math.round((accIdx + spdIdx) / 2);
+  const diff = accIdx - spdIdx;
+  let style;
+  if(diff >= 3) style = '正確さ重視のじっくり派タイプ';
+  else if(diff <= -3) style = 'スピード重視の早押しタイプ';
+  else style = '正確さとスピードのバランス型';
+  return LEVEL_COMMENTS[Math.max(0, Math.min(9, overall))] + `(${style})`;
+}
+
+function setGrade(id, grade){
+  const el = document.getElementById(id);
+  el.textContent = grade;
+  el.className = 'rank-grade num grade-' + grade;
+}
+
+function endGame(interrupted){
+  interrupted = !!interrupted;
+  clearInterval(timerId);
+  gameScreen.classList.add('hidden');
+  const wrong = answered - score;
+  const rate = answered > 0 ? score / answered : 0;
+  const avgResponseSec = answered > 0 ? (totalResponseMs / answered) / 1000 : 0;
+
+  document.getElementById('result-score').textContent = score;
+  document.getElementById('result-sub').textContent = '/ '+answered+'問中('+genreLabel(selectedGenre)+')';
+  document.getElementById('stat-correct').textContent = score;
+  document.getElementById('stat-wrong').textContent = wrong;
+  document.getElementById('stat-rate').textContent = Math.round(rate*100)+'%';
+
+  const accIdx = accuracyIndex(rate);
+  const spdIdx = speedIndex(avgResponseSec);
+  setGrade('rank-accuracy', rankFromIndex(accIdx));
+  setGrade('rank-speed', rankFromIndex(spdIdx));
+
+  interruptedTag.classList.toggle('hidden', !interrupted);
+
+  const tierEl = document.getElementById('result-tier');
+  let tier = 'はじめまして!';
+  if(interrupted) tier = '途中で中断しました';
+  else if(answered > 0) tier = overallComment(accIdx, spdIdx);
+  tierEl.textContent = tier;
+  endScreen.classList.remove('hidden');
+
+  if(answered > 0){
+    allGames.unshift({
+      date: new Date(),
+      selectedTime: selectedTime,
+      genre: selectedGenre,
+      score: score,
+      answered: answered,
+      wrong: wrong,
+      rate: rate,
+      avgResponseSec: avgResponseSec,
+      interrupted: interrupted,
+      entries: currentGameLog.slice()
+    });
+    if(allGames.length > 10) allGames.length = 10;
+    saveGamesToStorage(allGames);
+  }
+}
+
+const CONFETTI_COLORS = ['#17a974','#ffcb4d','#e14a56','#5eebb0','#ff9aa2','#cc7a00','#4d9eff','#b06bff'];
+
+function spawnConfetti(){
+  const count = 44;
+  for(let i = 0; i < count; i++){
+    const el = document.createElement('div');
+    el.className = 'confetti-piece';
+    const angle = Math.random() * Math.PI * 2;
+    const dist = 110 + Math.random() * 260;
+    const dx = Math.cos(angle) * dist;
+    const dy = Math.sin(angle) * dist - 50; // 少し上向きに散らす
+    el.style.setProperty('--dx', dx.toFixed(1) + 'px');
+    el.style.setProperty('--dy', dy.toFixed(1) + 'px');
+    el.style.setProperty('--rot', (Math.random() * 720 - 360).toFixed(0) + 'deg');
+    el.style.background = CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)];
+    const isStreamer = Math.random() < 0.35;
+    if(isStreamer){
+      el.style.width = (10 + Math.random() * 8).toFixed(1) + 'px';
+      el.style.height = (4 + Math.random() * 3).toFixed(1) + 'px';
+      el.style.borderRadius = '2px';
+    } else {
+      const size = (7 + Math.random() * 8).toFixed(1) + 'px';
+      el.style.width = size;
+      el.style.height = size;
+      el.style.borderRadius = Math.random() < 0.5 ? '50%' : '2px';
+    }
+    el.style.animationDelay = (Math.random() * 0.08).toFixed(2) + 's';
+    confettiLayer.appendChild(el);
+    el.addEventListener('animationend', () => el.remove());
+  }
+}
+
+function spawnWrongEffect(){
+  wrongFlash.classList.remove('active');
+  // reflow を挟んでアニメーションを再トリガー
+  void wrongFlash.offsetWidth;
+  wrongFlash.classList.add('active');
+
+  cardWrap.classList.remove('shake');
+  void cardWrap.offsetWidth;
+  cardWrap.classList.add('shake');
+}
+
+function answer(isLeft){
+  if(locked) return;
+  locked = true;
+  let scheduledNext = false;
+
+  try {
+    const cur = currentDisplay;
+    const userAnswer = isLeft; // left = true(○), right = false(×)
+    const correct = (userAnswer === cur.correct);
+
+    const elapsedMs = Math.max(0, Math.min(20000, performance.now() - questionShownAt));
+    totalResponseMs += elapsedMs;
+
+    if(correct) score++;
+    answered++;
+    scoreNum.textContent = score;
+
+    currentGameLog.push({num: answered, q: cur.text, userO: userAnswer, correctO: cur.correct, correct: correct, exp: cur.exp});
+
+    if(correct){
+      try { spawnConfetti(); } catch(err){ console.error('confetti failed', err); }
+    } else {
+      try { spawnWrongEffect(); } catch(err){ console.error('wrong effect failed', err); }
+    }
+
+    // fly card off
+    const flyX = isLeft ? -700 : 700;
+    card.style.transition = 'transform .35s cubic-bezier(.2,.8,.3,1), opacity .35s ease';
+    card.style.transform = `translate(${flyX}px, 0px) rotate(${isLeft?-18:18}deg)`;
+    card.style.opacity = '0';
+
+    // flash feedback
+    flashText.textContent = correct ? 'せいかい!' : 'ざんねん…';
+    flashText.className = 'flash-text ' + (correct ? 'correct' : 'wrong');
+    flash.style.transition = 'opacity .12s ease';
+    flash.style.opacity = '1';
+    setTimeout(()=>{ flash.style.opacity = '0'; }, 260);
+
+    setTimeout(()=>{
+      qIndex++;
+      if(timeLeft > 0) loadQuestion();
+    }, 300);
+    scheduledNext = true;
+  } catch(err){
+    console.error('answer() failed', err);
+  } finally {
+    // 万が一エラーが起きて次の問題へ進む処理がスケジュールされなかった場合の保険
+    if(!scheduledNext){
+      card.style.transition = 'transform .25s ease';
+      card.style.transform = 'translate(0px,0px) rotate(0deg)';
+      card.style.opacity = '1';
+      setTimeout(()=>{
+        qIndex++;
+        if(timeLeft > 0) loadQuestion();
+      }, 300);
+    }
+  }
+}
+
+// drag / flick handling
+let dragging = false;
+let startX=0, startY=0;
+
+card.addEventListener('pointerdown', (e)=>{
+  if(locked) return;
+  dragging = true;
+  card.classList.add('dragging');
+  startX = e.clientX; startY = e.clientY;
+  card.style.transition = 'none';
+});
+
+window.addEventListener('pointermove', (e)=>{
+  if(!dragging) return;
+  const dx = e.clientX - startX;
+  const dy = e.clientY - startY;
+  card.style.transform = `translate(${dx}px, ${dy*0.4}px) rotate(${dx*0.04}deg)`;
+
+  const leftStrength = Math.max(0, Math.min(1, -dx/160));
+  const rightStrength = Math.max(0, Math.min(1, dx/160));
+  zoneLeft.style.backgroundColor = `rgba(61,220,151,${leftStrength*0.25})`;
+  zoneRight.style.backgroundColor = `rgba(255,107,122,${rightStrength*0.25})`;
+});
+
+function resetZones(){
+  zoneLeft.style.backgroundColor = 'transparent';
+  zoneRight.style.backgroundColor = 'transparent';
+}
+
+function finishDrag(e){
+  if(!dragging) return;
+  dragging = false;
+  card.classList.remove('dragging');
+  resetZones();
+  const dx = e.clientX - startX;
+  const dy = e.clientY - startY;
+  const threshold = 90;
+
+  if(Math.abs(dx) > threshold && Math.abs(dx) > Math.abs(dy)){
+    answer(dx < 0);
+  } else {
+    card.style.transition = 'transform .25s cubic-bezier(.3,.6,.3,1)';
+    card.style.transform = 'translate(0px,0px) rotate(0deg)';
+  }
+}
+
+window.addEventListener('pointerup', finishDrag);
+window.addEventListener('pointercancel', ()=>{
+  if(!dragging) return;
+  dragging = false;
+  card.classList.remove('dragging');
+  resetZones();
+  card.style.transition = 'transform .25s ease';
+  card.style.transform = 'translate(0px,0px) rotate(0deg)';
+});
+
+// keyboard accessibility
+document.addEventListener('keydown', (e)=>{
+  if(gameScreen.classList.contains('hidden')) return;
+  if(e.key === 'ArrowLeft'){ answer(true); }
+  if(e.key === 'ArrowRight'){ answer(false); }
+});
+
+// tap the ○/× guide pills to answer directly
+hintOBtn.addEventListener('click', ()=>{ answer(true); });
+hintXBtn.addEventListener('click', ()=>{ answer(false); });
+
+// quit / interrupt game
+quitBtn.addEventListener('click', ()=>{
+  clearInterval(timerId);
+  quitModal.classList.remove('hidden');
+});
+quitCancel.addEventListener('click', ()=>{
+  quitModal.classList.add('hidden');
+  if(!gameScreen.classList.contains('hidden') && timeLeft > 0){
+    runTimer();
+  }
+});
+quitConfirmBtn.addEventListener('click', ()=>{
+  quitModal.classList.add('hidden');
+  endGame(true);
+});
+quitModal.addEventListener('click', (e)=>{
+  if(e.target === quitModal){
+    quitModal.classList.add('hidden');
+    if(!gameScreen.classList.contains('hidden') && timeLeft > 0){
+      runTimer();
+    }
+  }
+});
+
+// clear history
+document.getElementById('clear-history-cancel').addEventListener('click', ()=>{
+  clearHistoryModal.classList.add('hidden');
+});
+document.getElementById('clear-history-confirm').addEventListener('click', ()=>{
+  allGames = [];
+  saveGamesToStorage(allGames);
+  clearHistoryModal.classList.add('hidden');
+  renderGamesList();
+});
+clearHistoryModal.addEventListener('click', (e)=>{
+  if(e.target === clearHistoryModal){
+    clearHistoryModal.classList.add('hidden');
+  }
+});
+
+// history modal
+function formatDate(d){
+  const mm = d.getMonth()+1, dd = d.getDate();
+  const hh = String(d.getHours()).padStart(2,'0');
+  const mi = String(d.getMinutes()).padStart(2,'0');
+  return `${mm}/${dd} ${hh}:${mi}`;
+}
+
+function renderGamesList(){
+  historyTitle.textContent = '履歴(直近10ゲーム)';
+  historyBack.classList.add('hidden');
+  if(allGames.length === 0){
+    historyList.innerHTML = '<div class="modal-empty">まだプレイ記録がありません</div>';
+    return;
+  }
+  historyList.innerHTML = allGames.map((game, idx) => {
+    const accGrade = rankFromIndex(accuracyIndex(game.rate));
+    const spdGrade = rankFromIndex(speedIndex(game.avgResponseSec));
+    return `
+    <button class="g-item" data-idx="${idx}">
+      <div class="g-item-left">
+        <div class="g-item-score num">正解 ${game.score} / ${game.answered}問</div>
+        <div class="g-item-date">${formatDate(game.date)}・${genreLabel(game.genre)}(制限時間${game.selectedTime}秒)${game.interrupted ? '<span class="g-interrupted">中断</span>' : ''}</div>
+        <div class="g-item-grades">
+          <span class="g-grade grade-${accGrade}">正確性 ${accGrade}</span>
+          <span class="g-grade grade-${spdGrade}">スピード ${spdGrade}</span>
+        </div>
+      </div>
+      <div class="g-item-right">
+        <div class="g-item-rate num">${Math.round(game.rate*100)}%</div>
+        <div class="g-item-arrow">›</div>
+      </div>
+    </button>
+  `;
+  }).join('') + `<button class="clear-history-btn" id="clear-history-btn">履歴をすべて削除</button>`;
+
+  historyList.querySelectorAll('.g-item').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const idx = parseInt(btn.dataset.idx, 10);
+      renderGameDetail(allGames[idx], true);
+    });
+  });
+
+  const clearBtn = document.getElementById('clear-history-btn');
+  if(clearBtn){
+    clearBtn.addEventListener('click', ()=>{
+      clearHistoryModal.classList.remove('hidden');
+    });
+  }
+}
+
+function renderGameDetail(game, fromList){
+  historyTitle.textContent = fromList
+    ? `${formatDate(game.date)}の記録${game.interrupted ? '(中断)' : ''}`
+    : '今のゲームの記録';
+  historyBack.classList.toggle('hidden', !fromList);
+
+  if(game.entries.length === 0){
+    historyList.innerHTML = '<div class="modal-empty">まだ回答していません</div>';
+    return;
+  }
+  historyList.innerHTML = game.entries.map(item => `
+    <div class="h-item">
+      <div class="h-num num">Q${item.num}</div>
+      <div>
+        <div class="h-q">${item.q}</div>
+        ${item.correct ? '' : `
+          <div class="h-correct-note">正解は「${item.correctO ? '○' : '×'}」</div>
+          ${item.exp ? `<div class="h-exp">💡 ${item.exp}</div>` : ''}
+        `}
+      </div>
+      <div class="h-mark ${item.correct ? 'ok' : 'ng'}">${item.userO ? '○' : '×'}</div>
+    </div>
+  `).join('');
+}
+
+function openModal(){
+  historyModal.classList.remove('hidden');
+  if(!gameScreen.classList.contains('hidden')){
+    clearInterval(timerId);
+  }
+}
+
+function closeHistory(){
+  historyModal.classList.add('hidden');
+  if(!gameScreen.classList.contains('hidden') && timeLeft > 0){
+    runTimer();
+  }
+}
+
+function openCurrentGameHistory(){
+  const pseudoGame = {entries: currentGameLog};
+  renderGameDetail(pseudoGame, false);
+  openModal();
+}
+
+function openGamesHistory(){
+  renderGamesList();
+  openModal();
+}
+
+historyBtn.addEventListener('click', openCurrentGameHistory);
+endHistoryBtn.addEventListener('click', openGamesHistory);
+historyBack.addEventListener('click', renderGamesList);
+historyClose.addEventListener('click', closeHistory);
+historyModal.addEventListener('click', (e)=>{
+  if(e.target === historyModal) closeHistory();
+});
+</script>
+
+</body>
+</html>
