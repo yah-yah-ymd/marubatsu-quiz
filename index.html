@@ -125,12 +125,12 @@
   #game-screen{padding:0;}
   .zone{
     position:absolute; top:0; bottom:0; width:50%;
-    display:flex; align-items:center; justify-content:center;
     transition:background-color .12s ease;
   }
   .zone-left{left:0; background:transparent;}
   .zone-right{right:0; background:transparent;}
   .zone-symbol{
+    position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
     font-family:'Fredoka'; font-weight:700; font-size:15vh; opacity:.16;
   }
   .zone-left .zone-symbol{color:var(--maru);}
@@ -138,7 +138,7 @@
 
   .hud{
     position:absolute; top:0; left:0; right:0; z-index:5;
-    padding:16px 18px 0; display:flex; flex-direction:column; gap:8px;
+    padding:16px 18px 0; display:flex; flex-direction:column; gap:10px;
   }
   .hud-top{display:flex; justify-content:space-between; align-items:center;}
   .hud-left{display:flex; align-items:center; gap:8px;}
@@ -170,14 +170,50 @@
     color:#fff;
   }
   .score-pill .n{color:#ffcb4d; font-size:18px;}
-  .timer-num{
-    font-family:'Fredoka'; font-weight:700; font-size:20px;
-    background:var(--chip-bg); border:1px solid rgba(255,255,255,.14);
-    padding:7px 16px; border-radius:999px; backdrop-filter:blur(6px); min-width:56px; text-align:center;
-    color:#fff;
-  }
-  .timer-track{height:6px; border-radius:999px; background:rgba(20,21,42,.12); overflow:hidden;}
+  .timer-track{height:11px; border-radius:999px; background:rgba(20,21,42,.12); overflow:hidden;}
   .timer-fill{height:100%; width:100%; background:var(--gold); border-radius:999px; transition:width .2s linear, background-color .3s;}
+  .timer-fill.warn{background:linear-gradient(90deg,#ffb23d,#ff8a3d);}
+  .timer-fill.danger{background:var(--batsu); animation:fillPulse .5s ease-in-out infinite;}
+  @keyframes fillPulse{
+    0%,100%{opacity:1;}
+    50%{opacity:.5;}
+  }
+
+  /* カードのすぐ上に置く、大きく視認しやすいタイマー数字。
+     問題文を読んでいる視線のすぐそばに配置することで、
+     上部HUDまで目を動かさなくても残り時間を意識できるようにしている */
+  .card-timer-wrap{
+    display:flex; flex-direction:column; align-items:center; gap:34px;
+  }
+  .card-timer{
+    display:flex; align-items:baseline; gap:5px;
+    font-family:'Fredoka'; font-weight:700;
+    color:var(--ink); line-height:1;
+    transition:color .2s;
+  }
+  .card-timer .card-timer-n{font-size:clamp(56px, 18vw, 84px);}
+  .card-timer .card-timer-unit{
+    font-family:'Zen Maru Gothic'; font-weight:900; font-size:16px;
+    opacity:.5; padding-bottom:10px;
+  }
+  .card-timer.warn{color:var(--gold);}
+  .card-timer.danger{color:var(--batsu); animation:cardTimerPulse .5s ease-in-out infinite;}
+  @keyframes cardTimerPulse{
+    0%,100%{transform:scale(1);}
+    50%{transform:scale(1.14);}
+  }
+  #danger-vignette{
+    position:absolute; inset:0; z-index:4; pointer-events:none;
+    box-shadow:inset 0 0 70px 12px rgba(225,74,86,.6);
+    opacity:0; transition:opacity .3s;
+  }
+  #danger-vignette.active{
+    opacity:1; animation:vignettePulse .8s ease-in-out infinite;
+  }
+  @keyframes vignettePulse{
+    0%,100%{opacity:.45;}
+    50%{opacity:.95;}
+  }
 
   /* persistent left/right guide */
   .side-hint{
@@ -520,6 +556,8 @@
     <div class="zone zone-left" id="zone-left"><div class="zone-symbol">○</div></div>
     <div class="zone zone-right" id="zone-right"><div class="zone-symbol">×</div></div>
 
+    <div id="danger-vignette"></div>
+
     <div class="hud">
       <div class="hud-top">
         <div class="hud-left">
@@ -528,16 +566,20 @@
         </div>
         <div class="hud-right">
           <button class="history-btn" id="history-btn">履歴</button>
-          <div class="timer-num num" id="timer-num">60</div>
         </div>
       </div>
       <div class="timer-track"><div class="timer-fill" id="timer-fill"></div></div>
     </div>
 
     <div class="card-wrap" id="card-wrap">
-      <div class="card" id="card">
-        <span class="qnum num" id="qnum">Q1</span>
-        <span id="qtext">問題文</span>
+      <div class="card-timer-wrap">
+        <div class="card-timer num" id="timer-num">
+          <span class="card-timer-n" id="timer-num-n">60</span><span class="card-timer-unit">秒</span>
+        </div>
+        <div class="card" id="card">
+          <span class="qnum num" id="qnum">Q1</span>
+          <span id="qtext">問題文</span>
+        </div>
       </div>
     </div>
 
@@ -991,9 +1033,47 @@ const qtext = document.getElementById('qtext');
 const qnum = document.getElementById('qnum');
 const scoreNum = document.getElementById('score-num');
 const timerNum = document.getElementById('timer-num');
+const timerNumN = document.getElementById('timer-num-n');
 const timerFill = document.getElementById('timer-fill');
+const dangerVignette = document.getElementById('danger-vignette');
+
+// 残り時間の見た目(数字・バー・画面縁の演出)をまとめて更新する。
+// 15秒以下で「注意」色、5秒以下で「危険」演出(点滅+画面縁が赤く光る)に切り替える。
+function updateTimerUI(){
+  const t = Math.max(timeLeft, 0);
+  timerNumN.textContent = t;
+  timerFill.style.width = (t / selectedTime * 100) + '%';
+
+  timerNum.classList.remove('warn','danger');
+  timerFill.classList.remove('warn','danger');
+  dangerVignette.classList.remove('active');
+
+  if(timeLeft <= 5 && timeLeft > 0){
+    timerNum.classList.add('danger');
+    timerFill.classList.add('danger');
+    dangerVignette.classList.add('active');
+  } else if(timeLeft <= 15){
+    timerNum.classList.add('warn');
+    timerFill.classList.add('warn');
+  }
+}
 const zoneLeft = document.getElementById('zone-left');
 const zoneRight = document.getElementById('zone-right');
+const zoneLeftSymbol = zoneLeft.querySelector('.zone-symbol');
+const zoneRightSymbol = zoneRight.querySelector('.zone-symbol');
+
+// スワイプ中に薄く表示される背景の○×記号の縦位置を、実際のカードの中心に合わせる。
+// タイマー表示の追加でカードの縦位置が画面中央からズレたため、
+// 記号が固定の中央寄せのままだとカードの角からはみ出して見えてしまう問題への対応。
+function alignZoneSymbols(){
+  const gsRect = gameScreen.getBoundingClientRect();
+  const cardRect = card.getBoundingClientRect();
+  const centerY = cardRect.top + cardRect.height / 2 - gsRect.top;
+  zoneLeftSymbol.style.top = centerY + 'px';
+  zoneRightSymbol.style.top = centerY + 'px';
+}
+window.addEventListener('resize', alignZoneSymbols);
+
 const flash = document.getElementById('flash');
 const flashText = document.getElementById('flash-text');
 const confettiLayer = document.getElementById('confetti-layer');
@@ -1065,9 +1145,7 @@ function startGame(){
   currentPool = selectedGenre === 'all' ? QUESTIONS : QUESTIONS.filter(q => q.g === selectedGenre);
   queue = shuffle(currentPool);
   scoreNum.textContent = score;
-  timerNum.textContent = timeLeft;
-  timerFill.style.width = '100%';
-  timerFill.style.background = 'var(--gold)';
+  updateTimerUI();
 
   startScreen.classList.add('hidden');
   endScreen.classList.add('hidden');
@@ -1110,9 +1188,7 @@ function runTimer(){
   clearInterval(timerId);
   timerId = setInterval(()=>{
     timeLeft -= 1;
-    timerNum.textContent = Math.max(timeLeft,0);
-    timerFill.style.width = (Math.max(timeLeft,0)/selectedTime*100)+'%';
-    if(timeLeft <= 10) timerFill.style.background = 'var(--batsu)';
+    updateTimerUI();
     if(timeLeft <= 0){
       clearInterval(timerId);
       endGame();
@@ -1137,7 +1213,7 @@ function loadQuestion(){
   card.style.transition = 'none';
   card.style.transform = 'translate(0px,0px) rotate(0deg)';
   card.style.opacity = '1';
-  requestAnimationFrame(()=>{ card.style.transition = ''; });
+  requestAnimationFrame(()=>{ card.style.transition = ''; alignZoneSymbols(); });
   locked = false;
   questionShownAt = performance.now();
 }
@@ -1190,14 +1266,34 @@ const LEVEL_COMMENTS = [
   '別次元の結果。文字通り伝説級'
 ];
 
+// 総合評価は「正確性を最優先し、正確性が伴っている場合にのみスピードを加味する」方式にしている。
+// タイピング検定などと同じ考え方で、どれだけ速く答えても正答率が低ければ
+// 「たまたま当たっただけ」の可能性があるため高評価にはしない。
 function overallComment(accIdx, spdIdx){
-  const overall = Math.round((accIdx + spdIdx) / 2);
-  const diff = accIdx - spdIdx;
+  let overall;
+  if(accIdx <= 1){
+    // 正答率がD/C相当(低い)場合は、スピードにかかわらず正確性の低さをそのまま反映する
+    overall = accIdx;
+  } else if(accIdx <= 3){
+    // B/A相当。スピードが飛び抜けて速い(EX以上)場合のみ+1のボーナス程度にとどめる
+    overall = Math.min(9, accIdx + (spdIdx >= 7 ? 1 : 0));
+  } else {
+    // S相当以上まで正確性が伴っていれば、スピードも本人の実力として評価に反映する
+    overall = Math.round(accIdx * 0.75 + spdIdx * 0.25);
+  }
+  overall = Math.max(0, Math.min(9, overall));
+
   let style;
-  if(diff >= 3) style = '正確さ重視のじっくり派タイプ';
-  else if(diff <= -3) style = 'スピード重視の早押しタイプ';
-  else style = '正確さとスピードのバランス型';
-  return LEVEL_COMMENTS[Math.max(0, Math.min(9, overall))] + `(${style})`;
+  if(accIdx <= 1 && spdIdx >= 5){
+    style = '正解を急ぎすぎているかも。まずは正確性を優先しよう';
+  } else if(spdIdx - accIdx >= 4){
+    style = 'スピード重視の早押しタイプ(正確性が伴うとさらに良い)';
+  } else if(accIdx - spdIdx >= 3){
+    style = '正確さ重視のじっくり派タイプ';
+  } else {
+    style = '正確さとスピードのバランス型';
+  }
+  return LEVEL_COMMENTS[overall] + `(${style})`;
 }
 
 function setGrade(id, grade){
