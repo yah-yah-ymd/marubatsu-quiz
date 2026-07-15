@@ -1093,6 +1093,26 @@ const hintXBtn = document.getElementById('hint-x-btn');
 const quitBtn = document.getElementById('quit-btn');
 const quitModal = document.getElementById('quit-modal');
 const clearHistoryModal = document.getElementById('clear-history-modal');
+
+// モーダルの開閉はこの2関数に統一する。
+// opacityだけでの非表示(hidden クラス)は、Safariでまれに透明なまま
+// 描画がうっすら残ってしまうことがあるため、フェードアウト完了後に
+// display:none で描画対象から完全に除外し、開くときに確実に復帰させる。
+function showModalOverlay(el){
+  el.style.display = 'flex';
+  void el.offsetWidth;
+  el.classList.remove('hidden');
+}
+function hideModalOverlay(el){
+  el.classList.add('hidden');
+  el.addEventListener('transitionend', function onEnd(e){
+    if(e.propertyName !== 'opacity') return;
+    el.removeEventListener('transitionend', onEnd);
+    if(el.classList.contains('hidden')) el.style.display = 'none';
+  });
+}
+document.querySelectorAll('.modal-overlay.hidden').forEach(el => { el.style.display = 'none'; });
+
 const quitCancel = document.getElementById('quit-cancel');
 const quitConfirmBtn = document.getElementById('quit-confirm');
 const resultLabel = document.getElementById('result-label');
@@ -1529,21 +1549,21 @@ hintXBtn.addEventListener('click', ()=>{ answer(false); });
 // quit / interrupt game
 quitBtn.addEventListener('click', ()=>{
   clearInterval(timerId);
-  quitModal.classList.remove('hidden');
+  showModalOverlay(quitModal);
 });
 quitCancel.addEventListener('click', ()=>{
-  quitModal.classList.add('hidden');
+  hideModalOverlay(quitModal);
   if(!gameScreen.classList.contains('hidden') && timeLeft > 0){
     runTimer();
   }
 });
 quitConfirmBtn.addEventListener('click', ()=>{
-  quitModal.classList.add('hidden');
+  hideModalOverlay(quitModal);
   endGame(true);
 });
 quitModal.addEventListener('click', (e)=>{
   if(e.target === quitModal){
-    quitModal.classList.add('hidden');
+    hideModalOverlay(quitModal);
     if(!gameScreen.classList.contains('hidden') && timeLeft > 0){
       runTimer();
     }
@@ -1554,17 +1574,17 @@ quitModal.addEventListener('click', (e)=>{
 
 // clear history
 document.getElementById('clear-history-cancel').addEventListener('click', ()=>{
-  clearHistoryModal.classList.add('hidden');
+  hideModalOverlay(clearHistoryModal);
 });
 document.getElementById('clear-history-confirm').addEventListener('click', ()=>{
   allGames = [];
   saveGamesToStorage(allGames);
-  clearHistoryModal.classList.add('hidden');
+  hideModalOverlay(clearHistoryModal);
   renderGamesList();
 });
 clearHistoryModal.addEventListener('click', (e)=>{
   if(e.target === clearHistoryModal){
-    clearHistoryModal.classList.add('hidden');
+    hideModalOverlay(clearHistoryModal);
   }
 });
 
@@ -1617,7 +1637,7 @@ function renderGamesList(){
   const clearBtn = document.getElementById('clear-history-btn');
   if(clearBtn){
     clearBtn.addEventListener('click', ()=>{
-      clearHistoryModal.classList.remove('hidden');
+      showModalOverlay(clearHistoryModal);
     });
   }
 }
@@ -1648,14 +1668,14 @@ function renderGameDetail(game, fromList){
 }
 
 function openModal(){
-  historyModal.classList.remove('hidden');
+  showModalOverlay(historyModal);
   if(!gameScreen.classList.contains('hidden')){
     clearInterval(timerId);
   }
 }
 
 function closeHistory(){
-  historyModal.classList.add('hidden');
+  hideModalOverlay(historyModal);
   if(!gameScreen.classList.contains('hidden') && timeLeft > 0){
     runTimer();
   }
