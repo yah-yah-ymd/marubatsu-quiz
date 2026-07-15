@@ -29,17 +29,15 @@
   *{box-sizing:border-box; -webkit-tap-highlight-color: transparent;}
   html,body{
     margin:0; height:100%; overflow:hidden;
-    position:fixed; inset:0;
     background:var(--bg);
     font-family:'Zen Maru Gothic', -apple-system, 'Hiragino Sans', sans-serif;
     color:var(--ink);
     touch-action:none;
-    overscroll-behavior:none;
     user-select:none;
   }
   .num{font-family:'Fredoka', 'Zen Maru Gothic', sans-serif;}
 
-  #app{position:relative; width:100vw; height:100vh; height:100dvh; height:var(--app-height, 100dvh);}
+  #app{position:relative; width:100vw; height:100vh; height:100dvh;}
   .screen{
     position:absolute; inset:0;
     display:flex; flex-direction:column; align-items:center; justify-content:center;
@@ -664,17 +662,6 @@
 </div>
 
 <script>
-// iOS(特にホーム画面追加のスタンドアロンアプリ)では、CSSの100dvhがゲーム中の
-// レイアウト変化のたびに再計算され、それをきっかけにステータスバー領域が
-// 再表示されてしまうことがある。これを避けるため、画面の高さをJSで一度計測し、
-// CSS変数(--app-height)として固定値で持たせる。
-function setAppHeight(){
-  document.documentElement.style.setProperty('--app-height', window.innerHeight + 'px');
-}
-setAppHeight();
-window.addEventListener('resize', setAppHeight);
-window.addEventListener('orientationchange', () => setTimeout(setAppHeight, 200));
-
 const GENRES = ["動物","歴史","食べ物","スポーツ","ことば","雑学","アニメ","映画","音楽"];
 
 const QUESTIONS = [
