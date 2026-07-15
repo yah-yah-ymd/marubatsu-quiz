@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>フリック○×クイズ</title>
+<title>クイズ○✖️ラッシュ!</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;700&family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
 <style>
@@ -352,10 +352,16 @@
     background:linear-gradient(90deg,#4d9eff,#b06bff,#e14a56,#ffcb4d);
     -webkit-background-clip:text; background-clip:text; color:transparent;
   }
+  .rank-grade.grade-none{color:#c3c7d4;}
 
   .end-history-link{
     background:none; border:none; color:var(--ink); opacity:.55;
     font-family:'Zen Maru Gothic'; font-size:13px; text-decoration:underline;
+    cursor:pointer; margin-top:2px;
+  }
+  .exit-link{
+    background:none; border:none; color:var(--batsu); opacity:.6;
+    font-family:'Zen Maru Gothic'; font-size:12.5px; text-decoration:underline;
     cursor:pointer; margin-top:2px;
   }
 
@@ -433,6 +439,7 @@
   .g-grade.grade-EX{color:#c8323e;}
   .g-grade.grade-MASTER{color:#a8590a;}
   .g-grade.grade-LEGEND{color:#8455d1;}
+  .g-grade.grade-none{color:#a3a8b8;}
   .h-item{
     display:flex; align-items:flex-start; gap:10px;
     padding:12px 2px; border-bottom:1px solid rgba(20,21,42,.08);
@@ -477,7 +484,7 @@
       <div class="logo-symbol o">○</div>
       <div class="logo-symbol x">×</div>
     </div>
-    <h1>フリック○×クイズ</h1>
+    <h1>クイズ○✖️ラッシュ!</h1>
     <div class="subtitle">制限時間内に何問正解できるかな?</div>
 
     <div class="howto">
@@ -507,6 +514,7 @@
 
     <button class="start-btn" id="start-btn">スタート</button>
     <button class="end-history-link" id="start-history-btn">過去の記録を見る</button>
+    <button class="exit-link" id="start-exit-btn">アプリを終了する</button>
   </div>
 
   <!-- GAME -->
@@ -560,6 +568,17 @@
     </div>
   </div>
 
+  <!-- EXIT APP CONFIRM -->
+  <div class="modal-overlay hidden" id="exit-modal">
+    <div class="modal-card confirm-card">
+      <div class="confirm-text">アプリを終了しますか?<br><span class="confirm-sub">このタブ(画面)を閉じます</span></div>
+      <div class="confirm-actions">
+        <button class="confirm-btn ghost" id="exit-cancel">キャンセル</button>
+        <button class="confirm-btn danger" id="exit-confirm">終了する</button>
+      </div>
+    </div>
+  </div>
+
   <!-- CLEAR HISTORY CONFIRM -->
   <div class="modal-overlay hidden" id="clear-history-modal">
     <div class="modal-card confirm-card">
@@ -591,6 +610,7 @@
     <div class="result-tier" id="result-tier">はじめまして!</div>
     <button class="retry-btn" id="retry-btn">もう一度あそぶ</button>
     <button class="end-history-link" id="end-history-btn">履歴を見る</button>
+    <button class="exit-link" id="end-exit-btn">アプリを終了する</button>
   </div>
 
   <!-- HISTORY MODAL -->
@@ -1011,6 +1031,7 @@ const quitCancel = document.getElementById('quit-cancel');
 const quitConfirmBtn = document.getElementById('quit-confirm');
 const resultLabel = document.getElementById('result-label');
 const interruptedTag = document.getElementById('interrupted-tag');
+const exitModal = document.getElementById('exit-modal');
 
 // time select
 document.getElementById('time-select').addEventListener('click', (e)=>{
@@ -1139,33 +1160,49 @@ function loadQuestion(){
 const RANK_NAMES = ['D','C','B','A','S','SS','SSS','EX','MASTER','LEGEND'];
 
 // 正答率(0〜1)を0〜9の段階インデックスに変換
-function accuracyIndex(rate){
-  const th = [0.20, 0.35, 0.48, 0.60, 0.70, 0.80, 0.88, 0.94, 0.98];
-  for(let i = 0; i < th.length; i++){ if(rate < th[i]) return i; }
-  return th.length;
+// ○×クイズは何も考えず答えても正答率50%前後になりうるため、
+// 50%付近は下位ランクにとどまるよう厳しめに設定している
+function accuracyIndex(rate, answered){
+  const th = [0.50, 0.58, 0.65, 0.72, 0.78, 0.84, 0.89, 0.93, 0.97];
+  let idx = th.length;
+  for(let i = 0; i < th.length; i++){ if(rate < th[i]){ idx = i; break; } }
+  idx = capByReliability(idx, answered);
+  return idx;
 }
 
 // 平均回答時間(秒・小さいほど速い)を0〜9の段階インデックスに変換
-function speedIndex(avgSec){
+function speedIndex(avgSec, answered){
   // 平均回答時間(秒)が短いほど上位。値が大きい(遅い)方から順に判定する
-  const th = [4.5, 3.8, 3.2, 2.7, 2.3, 1.9, 1.5, 1.15, 0.85];
-  for(let i = 0; i < th.length; i++){ if(avgSec >= th[i]) return i; }
-  return th.length;
+  const th = [4.0, 3.3, 2.8, 2.4, 2.1, 1.8, 1.5, 1.2, 0.95];
+  let idx = th.length;
+  for(let i = 0; i < th.length; i++){ if(avgSec >= th[i]){ idx = i; break; } }
+  idx = capByReliability(idx, answered);
+  return idx;
+}
+
+// 回答数が少ないと「たまたま」上位ランクが出やすくなってしまうため、
+// 信頼できるだけの問題数をこなしていない場合はランクに上限をかける
+function capByReliability(idx, answered){
+  if(answered === undefined || answered === null) return idx;
+  if(answered < 3) return Math.min(idx, 3);  // Aまで
+  if(answered < 6) return Math.min(idx, 5);  // SSまで
+  if(answered < 10) return Math.min(idx, 7); // EXまで
+  return idx;
 }
 
 function rankFromIndex(idx){ return RANK_NAMES[Math.max(0, Math.min(9, idx))]; }
 
 const LEVEL_COMMENTS = [
-  'まずは1問ずつ、じっくり慣れていこう!',
-  '少しずつコツをつかんできた感じ!',
-  '基礎はしっかりできてきた!',
-  'なかなかの実力!安定感が出てきた',
-  'かなり良い感触!このペースで続けよう',
-  '上級者の入り口に立った!',
-  'かなりの実力者。自信を持っていい',
-  'もう達人クラスの仕上がり!',
-  '圧倒的な仕上がり。ほぼ隙がない',
-  '伝説級のプレイ。文句なしの結果!'
+  'まだ伸びしろが大きい段階。基本から慣れていこう',
+  '少しずつ勘所をつかんできたところ',
+  '平均的なレベル。ここからが本番',
+  '及第点の実力。安定感を磨いていこう',
+  '実力者と呼べるレベルに到達',
+  'かなりの実力。上位クラスの結果',
+  '相当な精度とスピード。簡単には出せない結果',
+  '達人レベル。ミスも迷いもほぼない',
+  '文句なしの高精度。トップクラスの実力',
+  '別次元の結果。文字通り伝説級'
 ];
 
 function overallComment(accIdx, spdIdx){
@@ -1180,6 +1217,11 @@ function overallComment(accIdx, spdIdx){
 
 function setGrade(id, grade){
   const el = document.getElementById(id);
+  if(grade === null || grade === undefined){
+    el.textContent = '―';
+    el.className = 'rank-grade num grade-none';
+    return;
+  }
   el.textContent = grade;
   el.className = 'rank-grade num grade-' + grade;
 }
@@ -1198,16 +1240,21 @@ function endGame(interrupted){
   document.getElementById('stat-wrong').textContent = wrong;
   document.getElementById('stat-rate').textContent = Math.round(rate*100)+'%';
 
-  const accIdx = accuracyIndex(rate);
-  const spdIdx = speedIndex(avgResponseSec);
-  setGrade('rank-accuracy', rankFromIndex(accIdx));
-  setGrade('rank-speed', rankFromIndex(spdIdx));
+  const accIdx = accuracyIndex(rate, answered);
+  const spdIdx = speedIndex(avgResponseSec, answered);
+  if(interrupted){
+    setGrade('rank-accuracy', null);
+    setGrade('rank-speed', null);
+  } else {
+    setGrade('rank-accuracy', rankFromIndex(accIdx));
+    setGrade('rank-speed', rankFromIndex(spdIdx));
+  }
 
   interruptedTag.classList.toggle('hidden', !interrupted);
 
   const tierEl = document.getElementById('result-tier');
   let tier = 'はじめまして!';
-  if(interrupted) tier = '途中で中断しました';
+  if(interrupted) tier = '途中で中断したため、今回は評価なしです';
   else if(answered > 0) tier = overallComment(accIdx, spdIdx);
   tierEl.textContent = tier;
   endScreen.classList.remove('hidden');
@@ -1423,6 +1470,33 @@ quitModal.addEventListener('click', (e)=>{
   }
 });
 
+// exit app (start screen / result screen)
+function openExitModal(){
+  exitModal.classList.remove('hidden');
+}
+function closeExitModal(){
+  exitModal.classList.add('hidden');
+}
+function tryExitApp(){
+  closeExitModal();
+  // script以外(URL直接入力やリンク)で開いたタブはブラウザの仕様上window.close()が
+  // 効かないことが多いため、少し待って閉じられなかった場合に案内を出す
+  const before = document.hidden;
+  window.close();
+  setTimeout(()=>{
+    if(!document.hidden){
+      alert('ブラウザの仕様により自動では閉じられませんでした。お手数ですが、このタブを手動で閉じてください。');
+    }
+  }, 400);
+}
+document.getElementById('start-exit-btn').addEventListener('click', openExitModal);
+document.getElementById('end-exit-btn').addEventListener('click', openExitModal);
+document.getElementById('exit-cancel').addEventListener('click', closeExitModal);
+document.getElementById('exit-confirm').addEventListener('click', tryExitApp);
+exitModal.addEventListener('click', (e)=>{
+  if(e.target === exitModal) closeExitModal();
+});
+
 // clear history
 document.getElementById('clear-history-cancel').addEventListener('click', ()=>{
   clearHistoryModal.classList.add('hidden');
@@ -1455,16 +1529,19 @@ function renderGamesList(){
     return;
   }
   historyList.innerHTML = allGames.map((game, idx) => {
-    const accGrade = rankFromIndex(accuracyIndex(game.rate));
-    const spdGrade = rankFromIndex(speedIndex(game.avgResponseSec));
+    const accGrade = game.interrupted ? null : rankFromIndex(accuracyIndex(game.rate, game.answered));
+    const spdGrade = game.interrupted ? null : rankFromIndex(speedIndex(game.avgResponseSec, game.answered));
+    const gradesHtml = game.interrupted
+      ? `<span class="g-grade grade-none">中断のため評価なし</span>`
+      : `<span class="g-grade grade-${accGrade}">正確性 ${accGrade}</span>
+         <span class="g-grade grade-${spdGrade}">スピード ${spdGrade}</span>`;
     return `
     <button class="g-item" data-idx="${idx}">
       <div class="g-item-left">
         <div class="g-item-score num">正解 ${game.score} / ${game.answered}問</div>
         <div class="g-item-date">${formatDate(game.date)}・${genreLabel(game.genre)}(制限時間${game.selectedTime}秒)${game.interrupted ? '<span class="g-interrupted">中断</span>' : ''}</div>
         <div class="g-item-grades">
-          <span class="g-grade grade-${accGrade}">正確性 ${accGrade}</span>
-          <span class="g-grade grade-${spdGrade}">スピード ${spdGrade}</span>
+          ${gradesHtml}
         </div>
       </div>
       <div class="g-item-right">
