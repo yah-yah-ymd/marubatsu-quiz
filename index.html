@@ -2,12 +2,8 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>クイズ○×ラッシュ!</title>
-<!-- ホーム画面に追加して起動したとき、Safariのバーを表示せず完全な全画面(スタンドアロン)にするための設定 -->
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="クイズ○×ラッシュ">
 <link rel="icon" type="image/png" sizes="32x32" href="icon/favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="icon/favicon-16.png">
@@ -142,7 +138,7 @@
 
   .hud{
     position:absolute; top:0; left:0; right:0; z-index:5;
-    padding:max(16px, env(safe-area-inset-top)) 18px 0; display:flex; flex-direction:column; gap:10px;
+    padding:16px 18px 0; display:flex; flex-direction:column; gap:10px;
   }
   .hud-top{display:flex; justify-content:space-between; align-items:center;}
   .hud-left{display:flex; align-items:center; gap:8px;}
@@ -161,7 +157,7 @@
     color:#fff; cursor:pointer;
   }
   .top-history-btn{
-    position:absolute; top:max(18px, env(safe-area-inset-top)); right:18px;
+    position:absolute; top:18px; right:18px;
     font-family:'Zen Maru Gothic'; font-weight:700; font-size:13px;
     background:var(--chip-bg); border:1px solid rgba(255,255,255,.14);
     padding:8px 14px; border-radius:999px; backdrop-filter:blur(6px);
