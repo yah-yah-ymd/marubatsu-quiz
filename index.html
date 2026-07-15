@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>【デモ:即消えver】クイズ○×ラッシュ!</title>
+<title>クイズ○×ラッシュ!</title>
 <meta name="theme-color" content="#ffffff">
 <meta name="apple-mobile-web-app-title" content="クイズ○×ラッシュ">
 <link rel="icon" type="image/png" sizes="32x32" href="icon/favicon-32.png">
@@ -407,7 +407,7 @@
     background:rgba(10,10,20,.62);
     display:flex; align-items:center; justify-content:center;
     padding:24px;
-    opacity:1; transition:opacity .25s ease;
+    opacity:1;
   }
   .modal-overlay.hidden{opacity:0; pointer-events:none;}
   #clear-history-modal{ z-index:40; }
@@ -1094,16 +1094,13 @@ const quitBtn = document.getElementById('quit-btn');
 const quitModal = document.getElementById('quit-modal');
 const clearHistoryModal = document.getElementById('clear-history-modal');
 
-// モーダルの開閉はこの2関数に統一する。
-// opacityだけでの非表示(hidden クラス)は、Safariでまれに透明なまま
-// 描画がうっすら残ってしまうことがあるため、フェードアウト完了後に
-// display:none で描画対象から完全に除外し、開くときに確実に復帰させる。
+// モーダルの開閉はこの2関数に統一する。フェードは行わず即座に切り替える。
+// 非表示時は display:none で描画対象から完全に除外し、
+// Safariで透明な要素の描画がうっすら残ってしまう現象を避ける。
 function showModalOverlay(el){
   el.style.display = 'flex';
-  void el.offsetWidth;
   el.classList.remove('hidden');
 }
-// ↓↓↓ 比較用デモ: フェードアウトを待たず即座に display:none にする版 ↓↓↓
 function hideModalOverlay(el){
   el.classList.add('hidden');
   el.style.display = 'none';
