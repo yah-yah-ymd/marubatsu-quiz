@@ -359,11 +359,6 @@
     font-family:'Zen Maru Gothic'; font-size:13px; text-decoration:underline;
     cursor:pointer; margin-top:2px;
   }
-  .exit-link{
-    background:none; border:none; color:var(--batsu); opacity:.6;
-    font-family:'Zen Maru Gothic'; font-size:12.5px; text-decoration:underline;
-    cursor:pointer; margin-top:2px;
-  }
 
   /* ---------- HISTORY MODAL ---------- */
   .modal-overlay{
@@ -514,7 +509,6 @@
 
     <button class="start-btn" id="start-btn">スタート</button>
     <button class="end-history-link" id="start-history-btn">過去の記録を見る</button>
-    <button class="exit-link" id="start-exit-btn">アプリを終了する</button>
   </div>
 
   <!-- GAME -->
@@ -568,17 +562,6 @@
     </div>
   </div>
 
-  <!-- EXIT APP CONFIRM -->
-  <div class="modal-overlay hidden" id="exit-modal">
-    <div class="modal-card confirm-card">
-      <div class="confirm-text">アプリを終了しますか?<br><span class="confirm-sub">このタブ(画面)を閉じます</span></div>
-      <div class="confirm-actions">
-        <button class="confirm-btn ghost" id="exit-cancel">キャンセル</button>
-        <button class="confirm-btn danger" id="exit-confirm">終了する</button>
-      </div>
-    </div>
-  </div>
-
   <!-- CLEAR HISTORY CONFIRM -->
   <div class="modal-overlay hidden" id="clear-history-modal">
     <div class="modal-card confirm-card">
@@ -610,7 +593,6 @@
     <div class="result-tier" id="result-tier">はじめまして!</div>
     <button class="retry-btn" id="retry-btn">もう一度あそぶ</button>
     <button class="end-history-link" id="end-history-btn">履歴を見る</button>
-    <button class="exit-link" id="end-exit-btn">アプリを終了する</button>
   </div>
 
   <!-- HISTORY MODAL -->
@@ -1031,7 +1013,6 @@ const quitCancel = document.getElementById('quit-cancel');
 const quitConfirmBtn = document.getElementById('quit-confirm');
 const resultLabel = document.getElementById('result-label');
 const interruptedTag = document.getElementById('interrupted-tag');
-const exitModal = document.getElementById('exit-modal');
 
 // time select
 document.getElementById('time-select').addEventListener('click', (e)=>{
@@ -1470,32 +1451,7 @@ quitModal.addEventListener('click', (e)=>{
   }
 });
 
-// exit app (start screen / result screen)
-function openExitModal(){
-  exitModal.classList.remove('hidden');
-}
-function closeExitModal(){
-  exitModal.classList.add('hidden');
-}
-function tryExitApp(){
-  closeExitModal();
-  // script以外(URL直接入力やリンク)で開いたタブはブラウザの仕様上window.close()が
-  // 効かないことが多いため、少し待って閉じられなかった場合に案内を出す
-  const before = document.hidden;
-  window.close();
-  setTimeout(()=>{
-    if(!document.hidden){
-      alert('ブラウザの仕様により自動では閉じられませんでした。お手数ですが、このタブを手動で閉じてください。');
-    }
-  }, 400);
-}
-document.getElementById('start-exit-btn').addEventListener('click', openExitModal);
-document.getElementById('end-exit-btn').addEventListener('click', openExitModal);
-document.getElementById('exit-cancel').addEventListener('click', closeExitModal);
-document.getElementById('exit-confirm').addEventListener('click', tryExitApp);
-exitModal.addEventListener('click', (e)=>{
-  if(e.target === exitModal) closeExitModal();
-});
+// exit app removed (window.close() cannot reliably close a normally-opened tab)
 
 // clear history
 document.getElementById('clear-history-cancel').addEventListener('click', ()=>{
