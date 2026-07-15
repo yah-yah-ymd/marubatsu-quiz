@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>クイズ○×ラッシュ!</title>
+<meta name="theme-color" content="#ffffff">
 <meta name="apple-mobile-web-app-title" content="クイズ○×ラッシュ">
 <link rel="icon" type="image/png" sizes="32x32" href="icon/favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="icon/favicon-16.png">
@@ -548,7 +549,6 @@
     </div>
 
     <button class="start-btn" id="start-btn">スタート</button>
-    <button class="end-history-link" id="start-history-btn">過去の記録を見る</button>
   </div>
 
   <!-- GAME -->
@@ -1122,7 +1122,6 @@ function genreLabel(g){
 }
 
 document.getElementById('start-btn').addEventListener('click', startGame);
-document.getElementById('start-history-btn').addEventListener('click', openGamesHistory);
 document.getElementById('top-history-btn').addEventListener('click', openGamesHistory);
 document.getElementById('retry-btn').addEventListener('click', ()=>{
   endScreen.classList.add('hidden');
