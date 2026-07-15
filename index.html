@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>クイズ○×ラッシュ!</title>
+<title>【デモ:即消えver】クイズ○×ラッシュ!</title>
 <meta name="theme-color" content="#ffffff">
 <meta name="apple-mobile-web-app-title" content="クイズ○×ラッシュ">
 <link rel="icon" type="image/png" sizes="32x32" href="icon/favicon-32.png">
@@ -1103,13 +1103,10 @@ function showModalOverlay(el){
   void el.offsetWidth;
   el.classList.remove('hidden');
 }
+// ↓↓↓ 比較用デモ: フェードアウトを待たず即座に display:none にする版 ↓↓↓
 function hideModalOverlay(el){
   el.classList.add('hidden');
-  el.addEventListener('transitionend', function onEnd(e){
-    if(e.propertyName !== 'opacity') return;
-    el.removeEventListener('transitionend', onEnd);
-    if(el.classList.contains('hidden')) el.style.display = 'none';
-  });
+  el.style.display = 'none';
 }
 document.querySelectorAll('.modal-overlay.hidden').forEach(el => { el.style.display = 'none'; });
 
